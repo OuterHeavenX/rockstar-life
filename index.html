@@ -407,6 +407,8 @@ function loadGame(){
     var raw=localStorage.getItem(SAVE_KEY);
     if(!raw) return false;
     S=JSON.parse(raw);
+    /* v1.1 migration: bail out minors who went into debt before the expense fix */
+    if(S&&S.age<18&&S.stats&&S.stats.money<0){ S.stats.money=0; S._bailed=true; }
     return !!(S&&S.alive!==undefined);
   }catch(e){ return false; }
 }
@@ -694,9 +696,11 @@ function onAge(){
     var roy=Math.round((S.albums*2500+S.singles*400)*(1+S.stats.fame/40));
     moneyDelta(roy,"💿 Royalty check");
   }
-  /* --- expenses --- */
-  var living=4000+Math.round(S.stats.fame*120)+S.kids.length*8000+(S.partner?2500:0);
-  moneyDelta(-living,"🧾 Living expenses");
+  /* --- expenses (minors live with their parents — no bills) --- */
+  if(S.age>=18){
+    var living=4000+Math.round(S.stats.fame*120)+S.kids.length*8000+(S.partner?2500:0);
+    moneyDelta(-living,"🧾 Living expenses");
+  }
   if(S.alimony>0){ moneyDelta(-S.alimonyAmt,"⚖️ Alimony"); S.alimony--; }
   if(S.stats.money<0){ delta("happiness",-5); toast("📉 You are in debt!","⚠️"); }
   /* --- kids grow --- */
@@ -870,12 +874,12 @@ var EVENTS=[
   {t:"🎸 Smash your guitar on him",sub:"rockstar rage",go:function(){delta("notoriety",R(8,15));delta("happiness",8);if(chance(0.3)){busted("Assault with a guitar");return null;}return "Security drags him out. The clip gets 10M views overnight.";}},
   {t:"🎤 Roast him on the mic",sub:"wit over fists",go:function(){delta("fame",R(4,9));delta("happiness",5);return "The crowd HOWLS. He slinks out. Legendary moment.";}},
   {t:"🙄 Ignore him",sub:"stay classy",go:function(){delta("happiness",-5);return "You finish the set. He tells everyone you are washed.";}}]},
-{id:"label",wt:8,icon:"💿",title:"Record Deal!",cond:function(){return S.stats.fame>=30&&!S.signed;},
+{id:"label",wt:8,icon:"💿",title:"Record Deal!",cond:function(){return S.age>=16&&S.stats.fame>=30&&!S.signed;},
  text:function(){return "A major label exec slides a contract across the table: a <b>"+fmtMoney(250000)+"</b> advance for 2 albums. Your indie friends call it selling out.";},
  choices:[
   {t:"✍️ SIGN IT",sub:"take the money",go:function(){S.signed=true;S.advance=250000;S.albumsOwed=2;moneyDelta(250000,"💿 Record advance");confetti(120);showBanner("💿 SIGNED!","record deal");achieve("signed","Signed Artist");return "Advance wired. Studio time booked. The machine is behind you now — deliver those 2 albums.";}},
   {t:"🚫 Stay independent",sub:"keep your soul",go:function(){delta("happiness",8);delta("fame",3);return "You walk away. The underground respects you more than ever.";}}]},
-{id:"groupie",wt:9,icon:"💋",title:"Backstage Temptation",cond:function(){return S.stats.fame>=25;},
+{id:"groupie",wt:9,icon:"💋",title:"Backstage Temptation",cond:function(){return S.age>=18&&S.stats.fame>=25;},
  text:function(){return "After the show, a gorgeous stranger slips backstage and makes their intentions very clear…";},
  choices:[
   {t:"😏 Indulge",go:function(){delta("happiness",R(10,16));if(S.partner&&chance(0.35)){exposed();return null;}return "What happens backstage stays backstage. Probably.";}},
@@ -1194,7 +1198,8 @@ function hasLiveSave(){
 $("btnNew").onclick=function(){ newLife(); showScreen("game"); renderAll(); };
 $("btnRebirth").onclick=function(){ newLife(); showScreen("game"); renderAll(); };
 $("btnContinue").onclick=function(){
-  if(loadGame()){ showScreen("game"); renderAll(); toast("Welcome back, rockstar.","🎸"); }
+  if(loadGame()){ showScreen("game"); renderAll(); toast("Welcome back, rockstar.","🎸");
+    if(S._bailed){ S._bailed=false; saveGame(); toast("👪 Your parents bailed you out of debt. Kids don't pay bills anymore.","💸"); } }
 };
 $("ageBtn").onclick=onAge;
 var mb=document.querySelectorAll(".menu-btn");
