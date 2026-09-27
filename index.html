@@ -9,7 +9,9 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="assets/css/game.css?v=20260927.2">
+<meta name="apple-mobile-web-app-title" content="Rockstar Life">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/game.css?v=20260927.3">
 <script>
 (function(){
   "use strict";
@@ -103,14 +105,15 @@
   <div id="floaters"></div>
   <canvas id="confetti"></canvas>
 </div>
-<script src="assets/js/core.js?v=20260927.2"></script>
-<script src="assets/js/menus.js?v=20260927.2"></script>
-<script src="assets/js/social-and-band.js?v=20260927.2"></script>
-<script src="assets/js/life-cycle.js?v=20260927.2"></script>
-<script src="assets/js/events.js?v=20260927.2"></script>
-<script src="assets/js/actions.js?v=20260927.2"></script>
-<script src="assets/js/relationships.js?v=20260927.2"></script>
-<script src="assets/js/game-over.js?v=20260927.2"></script>
+<script src="assets/js/core.js?v=20260927.3"></script>
+<script src="assets/js/menus.js?v=20260927.3"></script>
+<script src="assets/js/social-and-band.js?v=20260927.3"></script>
+<script src="assets/js/life-cycle.js?v=20260927.3"></script>
+<script src="assets/js/events.js?v=20260927.3"></script>
+<script src="assets/js/actions.js?v=20260927.3"></script>
+<script src="assets/js/relationships.js?v=20260927.3"></script>
+<script src="assets/js/expansion.js?v=20260927.3"></script>
+<script src="assets/js/game-over.js?v=20260927.3"></script>
 <script>
 (function(){
   "use strict";
@@ -127,6 +130,7 @@
   }
 })();
 </script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("service-worker.js").catch(function(){});}</script>
 </body>
 </html>
 

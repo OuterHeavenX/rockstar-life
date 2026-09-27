@@ -6,6 +6,7 @@ function legacyScore(){
 }
 function die(cause){
   if(!S||!S.alive) return;
+  if(typeof finalizeExpandedLegacy==="function") finalizeExpandedLegacy();
   S.alive=false; S.cause=cause;
   var sc=legacyScore(), best=getBest(), isBest=sc>best&&sc>0;
   if(isBest) setBest(sc);
@@ -26,6 +27,7 @@ function die(cause){
   $("deathAch").textContent=S.ach.length?
     "🏆 "+S.ach.length+" achievement"+(S.ach.length>1?"s":"")+" unlocked — a life fully lived.":
     "No achievements. A quiet life, off the charts.";
+  if(typeof expandedLegacyLine==="function") $("deathAch").textContent+=expandedLegacyLine();
   if(isBest) setTimeout(function(){ showBanner("👑 NEW BEST LEGACY!",sc.toLocaleString("en-US")+" points"); confetti(120); },400);
   var kb=$("btnKid");
   if(S.kids.length>0){
