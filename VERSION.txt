@@ -1,0 +1,9 @@
+Rockstar Life v3 (mega)
+
+This repo's index.html on main is still the older build until you replace it.
+Download the latest index.html from the Grok chat artifact and commit it over this file's sibling index.html.
+
+Includes: After Dark acts+locations, meters, HIV/AIDS, Hep C, baby mamas,
+child support evade/custody, sexuality picker, difficulty, regulars, sugar,
+threesomes, fan page, entourage, songs/collabs/doc, cancel arc, blackmail,
+kid traits, gallery, year recap, extra deaths, crypto/merch/drink.
