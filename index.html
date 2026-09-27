@@ -59,6 +59,7 @@ body{
 .btn.red{background:linear-gradient(135deg,#ff4d4d,#b30000); box-shadow:0 6px 0 rgba(0,0,0,.35),0 0 18px rgba(255,60,60,.5)}
 .btn.ghost{background:rgba(255,255,255,.12); box-shadow:none; border:1px solid rgba(255,255,255,.25)}
 .btn.small{padding:10px; font-size:14px; border-radius:14px}
+.btn.locked{opacity:.45; filter:grayscale(.8);}
 .btn .sub{display:block; font-size:12px; font-weight:500; opacity:.85; margin-top:2px}
 #ageBtn{
   font-size:24px; padding:18px; margin:12px 0 4px; border-radius:22px;
@@ -540,9 +541,11 @@ function openMenu(kind){
   if(kind==="life") h+=lifeSummary();
   if(kind==="prison") h+='<div class="kv">🔒 '+S.prison+' years left on your sentence. Keep your head down… or don\'t.</div>';
   items.forEach(function(it){
-    h+='<button class="btn small '+it.cls+'" onclick="A(\''+it.act+'\')">'
-      +it.icon+" "+it.label
-      +(it.sub?'<span class="sub">'+it.sub+'</span>':"")+'</button>';
+    var locked=it.min&&S.age<it.min;
+    h+='<button class="btn small '+it.cls+(locked?" locked":"")+'"'
+      +(locked?"":' onclick="A(\''+it.act+'\')"')
+      +'>'+(locked?"🔒 ":it.icon+" ")+it.label
+      +'<span class="sub">'+(locked?("unlocks at age "+it.min):(it.sub||""))+'</span></button>';
   });
   $("menuPanel").innerHTML=h;
   $("menuOverlay").classList.remove("hidden");
@@ -573,24 +576,22 @@ function lifeSummary(){
 function buildMenu(kind){
   var T=TIERS[S.tier], it=[];
   if(kind==="career"){
-    it.push({icon:"🎸",label:"Practice",sub:"Talent + · free",act:"practice",cls:"cyan"});
-    it.push({icon:"🎙️",label:"Play Gig",sub:"+"+fmtMoney(gigPay())+" · +"+T.gf+" fame",act:"gig",cls:"green"});
-    if(S.age>=14){
-      it.push({icon:"🎵",label:"Release Single",sub:fmtMoney(10000)+" studio cost",act:"single",cls:"gold"});
-      if(S.tier>=3||S.signed)
-        it.push({icon:"💿",label:"Release Album",sub:fmtMoney(50000)+" studio cost",act:"album",cls:"gold"});
-      if(S.tier>=4)
-        it.push({icon:"🚌",label:"Go on Tour",sub:"big money + fame, costs health",act:"tour",cls:"red"});
-    }
+    it.push({icon:"🎸",label:"Practice",sub:"Talent + · free",act:"practice",min:10,cls:"cyan"});
+    it.push({icon:"🎙️",label:"Play Gig",sub:"+"+fmtMoney(gigPay())+" · +"+T.gf+" fame",act:"gig",min:14,cls:"green"});
+    it.push({icon:"🎵",label:"Release Single",sub:fmtMoney(10000)+" studio cost",act:"single",min:14,cls:"gold"});
+    if(S.tier>=3||S.signed)
+      it.push({icon:"💿",label:"Release Album",sub:fmtMoney(50000)+" studio cost",act:"album",min:14,cls:"gold"});
+    if(S.tier>=4)
+      it.push({icon:"🚌",label:"Go on Tour",sub:"big money + fame, costs health",act:"tour",min:16,cls:"red"});
     if(S.signed&&S.albumsOwed>0)
       it.push({icon:"📝",label:"Label obligation",sub:S.albumsOwed+" album(s) owed",act:"labelInfo",cls:"ghost"});
   }
   if(kind==="activities"){
     it.push({icon:"📱",label:"Social Media Post",sub:"free · fame +",act:"social",cls:"cyan"});
-    it.push({icon:"🎉",label:"Party",sub:"happiness ++ · risky",act:"party",cls:""});
+    it.push({icon:"🎉",label:"Party",sub:"happiness ++ · risky",act:"party",min:16,cls:""});
     it.push({icon:"💇",label:"Salon",sub:fmtMoney(200)+" · looks +",act:"salon",cls:"ghost"});
-    it.push({icon:"🔪",label:"Plastic Surgery",sub:fmtMoney(15000)+" · looks ++ · botch risk!",act:"surgery",cls:"red"});
-    it.push({icon:"💊",label:"Take Drugs",sub:"the dark side…",act:"drugMenu",cls:"red"});
+    it.push({icon:"🔪",label:"Plastic Surgery",sub:fmtMoney(15000)+" · looks ++ · botch risk!",act:"surgery",min:18,cls:"red"});
+    it.push({icon:"💊",label:"Take Drugs",sub:"the dark side…",act:"drugMenu",min:14,cls:"red"});
     it.push({icon:"🎗️",label:"Charity Gala",sub:fmtMoney(10000)+" · fame + karma",act:"gala",cls:"green"});
   }
   if(kind==="health"){
@@ -602,7 +603,7 @@ function buildMenu(kind){
   }
   if(kind==="love"){
     if(!S.partner)
-      it.push({icon:"📱",label:"Dating App",sub:"find someone",act:"dating",cls:""});
+      it.push({icon:"📱",label:"Dating App",sub:"find someone",act:"dating",min:18,cls:""});
     else{
       it.push({icon:"🍷",label:"Date Night",sub:fmtMoney(500)+" · relationship +",act:"date",cls:"cyan"});
       if(!S.partner.spouse){
@@ -619,16 +620,16 @@ function buildMenu(kind){
     }
   }
   if(kind==="crime"){
-    it.push({icon:"🍺",label:"Bar Fight",sub:"notoriety + · risky",act:"c_fight",cls:"red"});
+    it.push({icon:"🍺",label:"Bar Fight",sub:"notoriety + · risky",act:"c_fight",min:12,cls:"red"});
     it.push({icon:"🎤",label:"Assault Heckler",sub:"requires fame 15+",act:"c_heckler",cls:"red"});
     it.push({icon:"💼",label:"Steal from Venue",sub:"quick cash · risky",act:"c_steal",cls:"red"});
-    it.push({icon:"🌿",label:"Deal Drugs",sub:"big cash · big risk",act:"c_deal",cls:"red"});
+    it.push({icon:"🌿",label:"Deal Drugs",sub:"big cash · big risk",act:"c_deal",min:16,cls:"red"});
     it.push({icon:"🧾",label:"Tax Evasion",sub:"requires "+fmtMoney(200000),act:"c_tax",cls:"red"});
   }
   if(kind==="drugs"){
     it.push({icon:"🌿",label:"Weed",sub:"mild · cheap",act:"d_weed",cls:"ghost"});
-    it.push({icon:"❄️",label:"Cocaine",sub:"strong · risky",act:"d_coke",cls:"red"});
-    it.push({icon:"💉",label:"Heroin",sub:"extreme · deadly",act:"d_heroin",cls:"red"});
+    it.push({icon:"❄️",label:"Cocaine",sub:"strong · risky",act:"d_coke",min:16,cls:"red"});
+    it.push({icon:"💉",label:"Heroin",sub:"extreme · deadly",act:"d_heroin",min:16,cls:"red"});
   }
   if(kind==="prison"){
     it.push({icon:"😇",label:"Behave",sub:"good time · parole chance +",act:"p_behave",cls:"green"});
