@@ -111,6 +111,9 @@ body{
 #moneyRow{display:flex; justify-content:space-between; align-items:center; margin-top:10px;
   font-size:19px; font-weight:800; color:#f5c86e; letter-spacing:.5px}
 #moneyRow span:first-child{font-size:12px; letter-spacing:2px; color:#a89bb8; text-transform:uppercase}
+#socRow{display:flex; justify-content:space-between; align-items:center; margin-top:6px;
+  font-size:16px; font-weight:800; color:#7cc7ff; letter-spacing:.5px}
+#socRow span:first-child{font-size:12px; letter-spacing:2px; color:#a89bb8; text-transform:uppercase}
 #menuGrid{display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; margin-top:12px}
 .menu-btn{padding:15px 8px; border-radius:16px; font-size:14px; font-weight:700; color:#f6f1e8; cursor:pointer;
   background:rgba(22,14,34,.72); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,.10);
@@ -214,6 +217,7 @@ body{
         <div class="stat" id="row-addiction"><div class="slabel"><span>💉 Addiction</span><b id="v-addiction">0</b></div><div class="bar"><div class="fill" id="b-addiction"></div></div></div>
         <div class="stat" id="row-notoriety"><div class="slabel"><span>😈 Notoriety</span><b id="v-notoriety">0</b></div><div class="bar"><div class="fill" id="b-notoriety"></div></div></div>
         <div id="moneyRow"><span>💰 NET WORTH</span><span id="v-money">$0</span></div>
+        <div id="socRow"><span>📱 FOLLOWERS</span><span id="v-followers">0</span></div>
       </div>
       <button class="btn" id="ageBtn">🎂 AGE +1</button>
       <div id="menuGrid">
@@ -222,6 +226,8 @@ body{
         <button class="menu-btn" data-menu="love"><span class="ic">💘</span>Love</button>
         <button class="menu-btn" data-menu="health"><span class="ic">🏥</span>Health</button>
         <button class="menu-btn" data-menu="crime"><span class="ic">🚔</span>Crime</button>
+        <button class="menu-btn" data-menu="social"><span class="ic">📱</span>Social</button>
+        <button class="menu-btn" data-menu="friends"><span class="ic">🧑‍🤝‍🧑</span>Friends</button>
         <button class="menu-btn" data-menu="life"><span class="ic">📖</span>My Life</button>
         <button class="menu-btn" data-menu="assets"><span class="ic">💰</span>Assets</button>
       </div>
@@ -343,6 +349,7 @@ function newLife(){
     prison:0, prisonTotal:0, record:false, alimony:0, alimonyAmt:0,
     ach:[], peakFame:0, peakTier:0, peakWorth:0,
     assets:[], biz:[], band:null, rival:null, awardYear:-1,
+    followers:0, smMile:0, crew:[], friends:[],
     alive:true, cause:"", rel:0
   };
   toast("🍼 "+S.name+" is born in "+S.city+"!", "🎸");
@@ -466,7 +473,13 @@ function loadGame(){
     /* v1.4 migration: new systems on old saves */
     if(S){ if(!S.assets)S.assets=[]; if(!S.biz)S.biz=[];
       if(S.band===undefined)S.band=null; if(S.rival===undefined)S.rival=null;
-      if(S.awardYear===undefined)S.awardYear=-1; }
+      if(S.awardYear===undefined)S.awardYear=-1;
+      /* v2.4 migration: social media, street crew, friends */
+      if(S.followers===undefined)S.followers=0;
+      if(S.smMile===undefined)S.smMile=0;
+      if(!S.crew)S.crew=[];
+      if(!S.friends)S.friends=[];
+      S.crew.forEach(function(w){ if(w.pot===undefined)w.pot=0; }); }
     return !!(S&&S.alive!==undefined);
   }catch(e){ return false; }
 }
@@ -566,6 +579,7 @@ function renderStats(){
     if((k==="health"||k==="happiness")&&st[k]<35) bar.className="fill bad";
     else if((k==="health"||k==="happiness")&&st[k]<60) bar.className="fill warn";
   });
+  $("v-followers").textContent=fmtNum(S.followers||0);
   var nw=netWorth();
   $("v-money").textContent=fmtMoney(nw);
   $("v-money").style.color=nw<0?"#ff6b6b":"#7cff9e";
@@ -588,7 +602,8 @@ function renderAll(){
 /* ---------------- menu framework ---------------- */
 var MENU_TITLES={career:"🎤 Career",activities:"🎉 Activities",love:"💘 Love Life",
   health:"🏥 Health",crime:"🚔 Crime",life:"📖 My Life",drugs:"💊 Drugs",prison:"🔒 Prison Yard",
-  assets:"💰 Assets",band:"🤘 Band",partner:"💑 Partner",side:"😈 Side Piece",member:"🤘 Band Member"};
+  assets:"💰 Assets",band:"🤘 Band",partner:"💑 Partner",side:"😈 Side Piece",member:"🤘 Band Member",
+  social:"📱 Social Media",friends:"🧑‍🤝‍🧑 Friends",worker:"💼 Associate",friend:"🧑‍🤝‍🧑 Friend"};
 /* submenu navigation: openSub pushes the current page so ‹ goes back */
 var menuStack=[], curMenu=null, subCtx=null;
 var ROLE_ICON={Drums:"🥁",Bass:"🎸",Guitar:"🎸"};
@@ -607,6 +622,8 @@ function openMenu(kind,ctx){
   if(kind==="side"&&S.side[subCtx]) title="😈 "+S.side[subCtx].name;
   if(kind==="member"&&S.band&&S.band.members[subCtx])
     title=(ROLE_ICON[S.band.members[subCtx].role]||"🤘")+" "+S.band.members[subCtx].name;
+  if(kind==="worker"&&S.crew&&S.crew[subCtx]) title="💼 "+S.crew[subCtx].name;
+  if(kind==="friend"&&S.friends&&S.friends[subCtx]) title="🧑‍🤝‍🧑 "+S.friends[subCtx].name;
   var h='<div class="menu-head">';
   if(menuStack.length) h+='<button class="xbtn" onclick="A(\'menuBack\')">‹</button>';
   else h+='<span style="width:36px"></span>';
@@ -619,6 +636,10 @@ function openMenu(kind,ctx){
   if(kind==="partner") h+=partnerSummary();
   if(kind==="side") h+=sideSummary(subCtx);
   if(kind==="member") h+=memberSummary(subCtx);
+  if(kind==="social") h+=socialSummary();
+  if(kind==="friends") h+=friendsSummary();
+  if(kind==="worker") h+=workerSummary(subCtx);
+  if(kind==="friend") h+=friendSummary(subCtx);
   if(kind==="prison") h+='<div class="kv">🔒 '+S.prison+' years left on your sentence. Keep your head down… or don\'t.</div>';
   items.forEach(function(it){
     if(it.head){ h+='<div class="kv" style="text-align:center;font-weight:800;letter-spacing:2px">'+it.label+'</div>'; return; }
@@ -770,6 +791,41 @@ function buildMenu(kind,ctx){
     it.push({icon:"💼",label:"Steal from Venue",sub:"quick cash · risky",act:"c_steal",cls:"red"});
     it.push({icon:"🌿",label:"Deal Drugs",sub:"big cash · big risk",act:"c_deal",min:16,cls:"red"});
     it.push({icon:"🧾",label:"Tax Evasion",sub:"requires "+fmtMoney(200000),act:"c_tax",cls:"red"});
+    it.push({head:true,label:"😎 THE GAME"});
+    it.push({icon:"😎",label:"Recruit Associate",sub:fmtMoney(5000)+" · looks+fame check · 18+",act:"recruit",min:18,cls:"gold"});
+    S.crew.forEach(function(w,i){
+      it.push({icon:"💼",label:w.name,
+        sub:"lvl "+w.lvl+" · loyalty "+Math.round(w.loyalty)+"% · banked "+fmtMoney(w.pot||0)+" · manage",
+        act:"workerMenu"+i,min:18,cls:"red"});
+    });
+  }
+  if(kind==="social"){
+    it.push({icon:"📸",label:"Post",sub:"followers + · free",act:"sm_post",cls:"cyan"});
+    it.push({icon:"🔴",label:"Go Live",sub:"big swing · scandal risk",act:"sm_live",cls:"red"});
+    it.push({icon:"🥩",label:"Start Beef",sub:"followers spike · heat +",act:"sm_beef",cls:"gold"});
+    it.push({icon:"💰",label:"Brand Deal",sub:"needs 100K followers · cash out",act:"sm_brand",cls:"green"});
+  }
+  if(kind==="friends"){
+    if(!S.friends.length)
+      it.push({icon:"🧑‍🤝‍🧑",label:"Make Friends",sub:"find your crew",act:"mkfriends",cls:"cyan"});
+    S.friends.forEach(function(f,i){
+      it.push({icon:"🧑‍🤝‍🧑",label:f.name,
+        sub:f.trait+" · closeness "+Math.round(f.closeness)+"% · hang out",act:"friendMenu"+i,cls:""});
+    });
+    if(S.friends.length>0&&S.friends.length<5)
+      it.push({icon:"➕",label:"New Friend",sub:"expand the circle",act:"mkfriends",cls:"ghost"});
+  }
+  if(kind==="worker"){
+    var w=S.crew[ctx]; if(!w) return it;
+    it.push({icon:"💼",label:"Collect Cut",sub:(w.pot>0?("take "+fmtMoney(w.pot)):"nothing banked yet"),act:"w_cut",min:18,cls:"green"});
+    it.push({icon:"🌃",label:"Team Night Out",sub:fmtMoney(1000)+" · loyalty ++",act:"w_out",min:18,cls:""});
+    it.push({icon:"✂️",label:"Cut Ties",sub:"remove from the operation",act:"w_loose",min:18,cls:"red"});
+  }
+  if(kind==="friend"){
+    var ff=S.friends[ctx]; if(!ff) return it;
+    it.push({icon:"🍻",label:"Hang Out",sub:fmtMoney(100)+" · happiness +",act:"fr_hang",cls:"cyan"});
+    it.push({icon:"🎉",label:"Party",sub:"happiness ++ · vice risk",act:"fr_party",cls:"red"});
+    it.push({icon:"💬",label:"Deep Talk",sub:"stress relief · closeness +",act:"fr_talk",cls:"ghost"});
   }
   if(kind==="drugs"){
     it.push({icon:"🌿",label:"Weed",sub:"mild · cheap",act:"d_weed",cls:"ghost"});
@@ -881,6 +937,96 @@ function sellBiz(i){
   var v=Math.round(b.value*RF(0.8,1.1));
   S.biz.splice(i,1);
   moneyDelta(v,"🏢 Sold "+b.name);
+}
+
+/* ---------------- SOCIAL MEDIA / STREET CREW / FRIENDS ---------------- */
+var FTRAITS=["loyal","wild","funny","ambitious","chill"];
+function fmtNum(n){
+  n=Math.round(n||0);
+  if(n>=1e9) return (n/1e9).toFixed(2)+"B";
+  if(n>=1e6) return (n/1e6).toFixed(2)+"M";
+  if(n>=1e3) return (n/1e3).toFixed(1)+"K";
+  return String(n);
+}
+function crewGen(){
+  return {name:(chance(0.5)?pick(FIRST_F):pick(FIRST_M))+" "+pick(LAST),
+    lvl:1, loyalty:R(40,60), heat:0, pot:0};
+}
+function newFriend(){
+  return {name:(chance(0.5)?pick(FIRST_F):pick(FIRST_M))+" "+pick(LAST),
+    closeness:R(40,60), trait:pick(FTRAITS)};
+}
+function genFriends(){
+  while(S.friends.length<3) S.friends.push(newFriend());
+  confetti(50);
+  toast("🧑‍🤝‍🧑 Your crew: "+S.friends.map(function(f){return f.name;}).join(", "),"🎉");
+}
+function crewW(){ return (S.crew&&S.crew[subCtx])||null; }
+function frFriend(){ return (S.friends&&S.friends[subCtx])||null; }
+function socialSummary(){
+  var h='<div class="kv">📱 <b>'+fmtNum(S.followers)+'</b> followers';
+  if(S.followers>=100000) h+='<br>💰 brand deals unlocked';
+  else if(S.followers>0) h+='<br>'+fmtNum(100000-S.followers)+' to go for brand deals';
+  return h+'</div>';
+}
+function friendsSummary(){
+  var h='<div class="kv">🧑‍🤝‍🧑 Your crew: <b>'+S.friends.length+'</b>';
+  if(S.friends.length)
+    h+='<br>'+S.friends.map(function(f){return f.name.split(" ")[0]+" ("+Math.round(f.closeness)+"%)";}).join(" · ");
+  return h+'</div>';
+}
+function workerSummary(i){
+  var w=S.crew[i]; if(!w) return "";
+  return '<div class="kv">💼 <b>'+w.name+'</b><br>level '+w.lvl+
+    ' · loyalty '+Math.round(w.loyalty)+'% · heat '+Math.round(w.heat)+'%'+
+    '<br>💰 banked cut: <b>'+fmtMoney(w.pot||0)+'</b></div>';
+}
+function friendSummary(i){
+  var f=S.friends[i]; if(!f) return "";
+  return '<div class="kv">🧑‍🤝‍🧑 <b>'+f.name+'</b><br><i>"'+f.trait+'"</i> · closeness '+
+    Math.round(f.closeness)+'%</div>';
+}
+/* yearly: street operation banks earnings, loyalty drifts, heat rises, arrest risk */
+function crewYear(){
+  if(!S.crew||!S.crew.length) return;
+  var heat=0;
+  S.crew.forEach(function(w){
+    var earn=Math.round(w.lvl*(300+w.loyalty*8)*RF(0.8,1.2));
+    w.pot=(w.pot||0)+earn;
+    w.loyalty=clamp(Math.round(w.loyalty-R(1,4)),0,100);
+    w.heat+=R(2,6);
+    heat+=w.heat;
+    if(w.loyalty>70&&w.lvl<10&&chance(0.15)){
+      w.lvl++;
+      toast("📈 "+w.name+" leveled up to "+w.lvl+"!","😎");
+    }
+  });
+  if(chance(Math.min(0.5,0.02+heat*0.0015))) busted("Running a street operation");
+}
+/* yearly: follower decay, sponsor income at 1M+, fame milestones */
+function socialYear(){
+  if(S.followers>0) S.followers=Math.max(0,Math.round(S.followers*0.97));
+  if(S.followers>=1000000)
+    moneyDelta(Math.round(S.followers*0.02),"📱 Sponsor payouts");
+  var miles=[10000,100000,1000000,10000000];
+  while(S.smMile<miles.length&&S.followers>=miles[S.smMile]){
+    S.smMile++;
+    delta("fame",5); confetti(80);
+    showBanner("📱 "+fmtNum(miles[S.smMile-1])+" FOLLOWERS!","social media milestone");
+    achieve("sm"+S.smMile,"Social Star "+S.smMile);
+  }
+}
+/* yearly: friends appear at 13, closeness drifts, fallouts happen */
+function friendsYear(){
+  if(S.age===13&&!S.friends.length) genFriends();
+  for(var i=S.friends.length-1;i>=0;i--){
+    var f=S.friends[i];
+    f.closeness=clamp(Math.round(f.closeness-R(2,5)),0,100);
+    if(f.closeness<=0){
+      S.friends.splice(i,1);
+      toast("💔 You and "+f.name+" drifted apart.","😔");
+    }
+  }
 }
 
 /* ---------------- BAND ---------------- */
@@ -1071,6 +1217,11 @@ function onAge(){
       S.rival=null;
     }
   }
+  /* --- v2.4: friends, social media, street crew --- */
+  friendsYear();
+  socialYear();
+  crewYear();
+  if(modalOpen()){ renderAll(); saveGame(); return; }   /* busted mid-tick */
   /* --- side-piece exposure --- */
   if(S.side.length>0&&S.partner&&chance(0.08+0.07*S.side.length)){
     exposed(); renderAll(); saveGame(); return;
@@ -1334,6 +1485,38 @@ var EVENTS=[
  choices:[
   {t:"💸 Pay them off",sub:fmtMoney(25000),go:function(){if(S.stats.money<25000){exposed();return null;}moneyDelta(-25000,"📸 Hush money");delta("notoriety",4);return "Photos buried. Your wallet is lighter, your secret is safe.";}},
   {t:"🤷 Let it run",go:function(){exposed();return null;}}]},
+{id:"sting",wt:5,icon:"🚨",title:"Undercover Sting!",cond:function(){return S.age>=18&&S.crew.length>0;},
+ text:function(){return "Cops are asking questions about your operation. A detective wants to 'talk'.";},
+ choices:[
+  {t:"🤐 Lay low",sub:"cool the heat",go:function(){S.crew.forEach(function(w){w.heat=Math.max(0,w.heat-15);});delta("happiness",-5);return "You go quiet for a month. The heat dies down.";}},
+  {t:"💸 Bribe the detective",sub:"$20,000",go:function(){if(S.stats.money<20000){busted("Bribing an officer");return null;}moneyDelta(-20000,"💸 Bribe");if(chance(0.6)){S.crew.forEach(function(w){w.heat=0;});return "The detective takes the envelope and forgets your name.";}busted("Bribing an officer");return null;}},
+  {t:"🏃 Ghost them",go:function(){if(chance(0.5)){delta("notoriety",8);S.crew.forEach(function(w){w.heat+=10;});return "You vanish for a while. They will be back.";}busted("Evading an investigation");return null;}}]},
+{id:"poached",wt:5,icon:"💃",title:"Poached!",cond:function(){return S.age>=18&&S.crew.length>0;},
+ text:function(){var w=pick(S.crew);_poach=w;return "A rival operator is trying to poach <b>"+w.name+"</b> with promises of a better split.";},
+ choices:[
+  {t:"💰 Match the offer",sub:"$10,000 bonus",go:function(){if(S.stats.money<10000){var gi=S.crew.indexOf(_poach);if(gi>=0)S.crew.splice(gi,1);return _poach.name+" walks. You could not compete.";}moneyDelta(-10000,"💰 Retention bonus");_poach.loyalty=clamp(_poach.loyalty+15,0,100);return _poach.name+" stays. Loyalty is expensive.";}},
+  {t:"👋 Let them walk",go:function(){var li=S.crew.indexOf(_poach);if(li>=0)S.crew.splice(li,1);delta("happiness",-5);return _poach.name+" is gone. The game is the game.";}}]},
+{id:"bustedassoc",wt:4,icon:"🚔",title:"Associate Arrested",cond:function(){return S.age>=18&&S.crew.length>0;},
+ text:function(){var w=pick(S.crew);_arr=w;return "<b>"+w.name+"</b> got picked up last night. They are sitting in county right now.";},
+ choices:[
+  {t:"💸 Post bail",sub:"$15,000",go:function(){if(S.stats.money<15000){var bi=S.crew.indexOf(_arr);if(bi>=0)S.crew.splice(bi,1);return "You could not afford bail. "+_arr.name+" is out of the game.";}moneyDelta(-15000,"💸 Bail");_arr.loyalty=clamp(_arr.loyalty+10,0,100);_arr.heat+=10;return _arr.name+" is back out. They will not forget this.";}},
+  {t:"✂️ Cut ties",go:function(){var ci=S.crew.indexOf(_arr);if(ci>=0)S.crew.splice(ci,1);delta("notoriety",4);if(chance(0.35)){busted("An associate flipped on you");return null;}return "You ghost them. Cold, but safe. Probably.";}}]},
+{id:"frienddrama",wt:5,icon:"😤",title:"Friend Drama",cond:function(){return S.friends.length>=2;},
+ text:function(){var a=pick(S.friends),b=a;while(b===a)b=pick(S.friends);_fd={a:a,b:b};
+  return "<b>"+a.name+"</b> and <b>"+b.name+"</b> had a huge blowup. Both want you to pick a side.";},
+ choices:[
+  {t:"🤝 Take their side",sub:function(){return _fd.a.name;},go:function(){_fd.a.closeness=clamp(_fd.a.closeness+8,0,100);_fd.b.closeness=clamp(_fd.b.closeness-18,0,100);delta("happiness",-4);return "You back "+_fd.a.name+". "+_fd.b.name+" is furious.";}},
+  {t:"🤝 Take their side",sub:function(){return _fd.b.name;},go:function(){_fd.b.closeness=clamp(_fd.b.closeness+8,0,100);_fd.a.closeness=clamp(_fd.a.closeness-18,0,100);delta("happiness",-4);return "You back "+_fd.b.name+". "+_fd.a.name+" is furious.";}},
+  {t:"🕊️ Stay neutral",sub:"lose a little of both",go:function(){_fd.a.closeness=clamp(_fd.a.closeness-6,0,100);_fd.b.closeness=clamp(_fd.b.closeness-6,0,100);delta("happiness",-2);return "You refuse to pick. Both are annoyed, but the friendship survives.";}}]},
+{id:"friendbail",wt:4,icon:"🙏",title:"Friend in Need",cond:function(){return S.friends.length>0;},
+ text:function(){var f=pick(S.friends);_fb=f;return "<b>"+f.name+"</b> is in a jam and needs "+fmtMoney(5000)+", no questions asked.";},
+ choices:[
+  {t:"💸 Help them out",sub:"$5,000",go:function(){if(S.stats.money<5000){_fb.closeness=clamp(_fb.closeness-15,0,100);return "You could not help. "+_fb.name+" understands. Mostly.";}moneyDelta(-5000,"🙏 Helping a friend");_fb.closeness=clamp(_fb.closeness+12,0,100);delta("happiness",4);return _fb.name+" owes you one. Real ones remember.";}},
+  {t:"🚫 Can't right now",go:function(){_fb.closeness=clamp(_fb.closeness-10,0,100);delta("happiness",-4);return "They say it is fine. It is not fine.";}}]},
+{id:"friendfame",wt:4,icon:"🌟",title:"Famous Friend",cond:function(){return S.friends.length>0&&S.stats.fame>=20;},
+ text:function(){var f=pick(S.friends);return "Your friend <b>"+f.name+"</b> just blew up on their own — and shouted you out in every interview!";},
+ choices:[
+  {t:"🎉 Ride the wave",go:function(){delta("fame",R(4,9));confetti(60);return "Their fans become your fans. Friendship pays.";}}]},
 /* --- v1.4: rivalries, award shows, band drama --- */
 {id:"rivalstart",wt:7,icon:"🎤",title:"Shots Fired!",cond:function(){return S.age>=18&&S.stats.fame>=35&&!S.rival;},
  text:function(){ _rv={name:(chance(0.5)?pick(FIRST_F):pick(FIRST_M))+" "+pick(LAST)};
@@ -1431,6 +1614,7 @@ var EVENTS=[
 ];
 var _rv={name:""};
 var _bod=null;
+var _poach=null,_arr=null,_fd=null,_fb=null;
 /* ---------------- 10. ACTIONS ---------------- */
 function needAge(n){ if(S.age<n){ toast("You must be at least "+n+" for that.","🔞"); return false; } return true; }
 function needCash(n){ if(S.stats.money<n){ toast("You need "+fmtMoney(n)+".","💸"); return false; } return true; }
@@ -1442,6 +1626,8 @@ function afterAct(){
     if(k==="partner"&&!S.partner){ menuStack=[]; openMenu("love"); return; }
     if(k==="side"&&!S.side[c]){ menuStack=[]; openMenu("love"); return; }
     if(k==="member"&&(!S.band||!S.band.members[c])){ menuStack=[]; openMenu(S.band?"band":"career"); return; }
+    if(k==="worker"&&!S.crew[c]){ menuStack=[]; openMenu("crime"); return; }
+    if(k==="friend"&&!S.friends[c]){ menuStack=[]; openMenu("friends"); return; }
     if(k==="band"&&!S.band){ menuStack=[]; openMenu("career"); return; }
     openMenu(k,c);
   } else closeMenu();
@@ -1460,6 +1646,8 @@ function A(name){
   if(name==="menuBack"){ menuBack(); return; }
   if(name.indexOf("sideMenu")===0){ openSub("side",parseInt(name.slice(8),10)); return; }
   if(name.indexOf("memberMenu")===0){ openSub("member",parseInt(name.slice(10),10)); return; }
+  if(name.indexOf("workerMenu")===0){ openSub("worker",parseInt(name.slice(10),10)); return; }
+  if(name.indexOf("friendMenu")===0){ openSub("friend",parseInt(name.slice(10),10)); return; }
   if(name.indexOf("fireMember")===0){ fireMember(parseInt(name.slice(10),10)); return; }
   if(name.indexOf("buyAsset")===0){ buyAsset(parseInt(name.slice(8),10)); afterAct(); return; }
   if(name.indexOf("sellAsset")===0){ sellAsset(parseInt(name.slice(9),10)); afterAct(); return; }
@@ -1579,10 +1767,84 @@ function A(name){
         toast("😠 "+out+" stormed out! A replacement was found.","🔥");
         if(S.band.chem<=0) breakupBand(); }
       else toast("😠 "+rp.name+" took the criticism. Barely.","🤘"); break; }
+    /* ---- the game (street crew) ---- */
+    case "recruit": if(!needAge(18))break;
+      if(S.crew.length>=6){ toast("Your operation is at capacity (6).","😎"); break; }
+      if(!needCash(5000))break;
+      if(S.stats.looks+S.stats.fame+R(0,60)<70){
+        moneyDelta(-2000,"😎 Recruiting");
+        toast("Nobody's biting. Build your looks and fame first.","😎"); break; }
+      moneyDelta(-5000,"😎 New associate");
+      S.crew.push(crewGen());
+      confetti(50); achieve("mogul","Street Mogul");
+      toast("😎 "+S.crew[S.crew.length-1].name+" joined the operation.","💼"); break;
+    case "w_cut": { var wc=crewW(); if(!wc)break;
+      if(!(wc.pot>0)){ toast("Nothing banked yet — the team is still working.","💼"); break; }
+      moneyDelta(wc.pot,"💼 Collected cut");
+      wc.pot=0; wc.loyalty=clamp(Math.round(wc.loyalty-R(2,5)),0,100); break; }
+    case "w_out": { var wo=crewW(); if(!wo||!needCash(1000))break;
+      moneyDelta(-1000,"🌃 Night out");
+      wo.loyalty=clamp(Math.round(wo.loyalty+R(8,15)),0,100);
+      wo.heat=Math.max(0,wo.heat-R(3,8));
+      delta("happiness",5); toast("🌃 Good night out. Loyalty up.","😎"); break; }
+    case "w_loose": { var wl=crewW(); if(!wl)break;
+      S.crew.splice(subCtx,1);
+      if(wl.loyalty<30&&chance(0.4)){ busted("An ex-associate flipped"); }
+      else { delta("happiness",-3); toast("✂️ You cut ties with "+wl.name+".","😮‍💨"); } break; }
+    /* ---- social media ---- */
+    case "sm_post": {
+      var g=Math.round(R(100,800)*(1+S.stats.fame/25));
+      if(chance(0.06)){ g*=5; confetti(70); toast("📱 Your post went MEGA-VIRAL!","🔥"); }
+      S.followers+=g; delta("fame",R(0,2)); delta("happiness",2);
+      toast("📱 +"+fmtNum(g)+" followers","📈"); break; }
+    case "sm_live": {
+      var sw=Math.round(R(-2000,12000)*(1+S.stats.fame/20));
+      S.followers=Math.max(0,S.followers+sw);
+      delta("happiness",R(2,6));
+      if(sw>=0) toast("🔴 Live was a hit! +"+fmtNum(sw)+" followers","📱");
+      else toast("🔴 Live flopped… "+fmtNum(sw)+" followers","📉");
+      if(chance(0.12)){ delta("notoriety",R(5,10)); shakeIt();
+        toast("🔴 You said something unhinged on live. Clipped everywhere.","😬"); } break; }
+    case "sm_beef": {
+      var spike=Math.round(R(5000,30000)*(1+S.stats.fame/25));
+      S.followers+=spike;
+      delta("notoriety",R(4,8)); delta("fame",R(2,5)); confetti(60);
+      if(!S.rival){
+        S.rival={name:(chance(0.5)?pick(FIRST_F):pick(FIRST_M))+" "+pick(LAST),heat:60};
+        toast("🥩 You started beef with "+S.rival.name+"! +"+fmtNum(spike)+" followers","📱");
+      } else {
+        S.rival.heat=clamp(S.rival.heat+15,0,100);
+        toast("🥩 You reignited the beef with "+S.rival.name+"! +"+fmtNum(spike)+" followers","📱");
+      } break; }
+    case "sm_brand":
+      if(S.followers<100000){ toast("You need 100K followers for brand deals. ("+fmtNum(S.followers)+")","📱"); break; }
+      moneyDelta(Math.round(S.followers*RF(0.08,0.2)),"💰 Brand deal");
+      S.followers=Math.round(S.followers*0.95);
+      delta("happiness",-2); confetti(70);
+      toast("💰 Sold out (lovingly).","📱"); break;
+    /* ---- friends ---- */
+    case "mkfriends":
+      if(S.friends.length>=5){ toast("Your circle is full (5).","🧑‍🤝‍🧑"); break; }
+      if(S.friends.length<3) genFriends();
+      else { S.friends.push(newFriend());
+        toast("🧑‍🤝‍🧑 New friend: "+S.friends[S.friends.length-1].name+"!","🎉"); } break;
+    case "fr_hang": { var fh=frFriend(); if(!fh||!needCash(100))break;
+      moneyDelta(-100,"🍻 Hangout");
+      fh.closeness=clamp(Math.round(fh.closeness+R(2,5)),0,100);
+      delta("happiness",R(4,9)); toast("🍻 Good times with "+fh.name+".","🧑‍🤝‍🧑"); break; }
+    case "fr_party": { var fp=frFriend(); if(!fp)break;
+      fp.closeness=clamp(Math.round(fp.closeness+R(3,6)),0,100);
+      delta("happiness",R(8,14)); delta("addiction",R(4,10));
+      if(chance(0.12)){ busted("Wild party"); } break; }
+    case "fr_talk": { var ft=frFriend(); if(!ft)break;
+      ft.closeness=clamp(Math.round(ft.closeness+R(5,10)),0,100);
+      delta("happiness",R(5,10)); delta("addiction",-R(3,6));
+      toast("💬 Real talk with "+ft.name+". You feel lighter.","🧑‍🤝‍🧑"); break; }
     /* ---- activities ---- */
     case "social":
       var flex=S.assets.some(function(a){return a.name==="Mansion"||a.name==="Private Jet";})?2:0;
       delta("fame",R(1,4)+Math.floor(S.tier/2)+flex);
+      S.followers+=Math.round(R(50,400)*(1+S.stats.fame/25));
       if(flex&&chance(0.5)) toast("📸 Flexing the lifestyle…","✨");
       if(chance(0.08)){ delta("fame",R(8,15)); confetti(50); toast("📱 Your post went VIRAL!","🔥"); }
       break;
@@ -1722,8 +1984,9 @@ function pickMate(i){
 /* ---------------- 11. DEATH & LEGACY ---------------- */
 function legacyScore(){
   var worth=S.peakWorth>0?Math.round(Math.log10(S.peakWorth+1)*220):0;
+  var soc=S.followers>0?Math.round(Math.log10(S.followers+1)*150):0;
   return Math.max(0,Math.round(S.peakFame*12+worth+S.kids.length*400+S.spouses*200+
-    S.ach.length*300+S.age*5+S.tier*150-S.prisonTotal*50));
+    S.ach.length*300+S.age*5+S.tier*150-S.prisonTotal*50+S.crew.length*150+soc));
 }
 function die(cause){
   if(!S||!S.alive) return;
@@ -1737,7 +2000,8 @@ function die(cause){
   var hl=[
     ["Peak tier",T.icon+" "+T.name],["Peak net worth",fmtMoney(S.peakWorth)],
     ["Marriages",S.spouses],["Kids",S.kids.length],
-    ["Prison time",S.prisonTotal+"y"],["Peak fame",Math.round(S.peakFame)]
+    ["Prison time",S.prisonTotal+"y"],["Peak fame",Math.round(S.peakFame)],
+    ["Followers","📱 "+fmtNum(S.followers)],["Street crew","😎 "+S.crew.length]
   ];
   $("deathHL").innerHTML=hl.map(function(x){
     return '<div class="hl"><div class="k">'+x[0]+'</div><div class="v">'+x[1]+'</div>';
