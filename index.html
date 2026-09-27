@@ -3,24 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#070409">
+<meta name="theme-color" content="#050308">
 <title>Rockstar Life</title>
 <style>
 /* ================= ROCKSTAR LIFE - noir luxe theme ================= */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{
-  background:#070409;
+  background:#050308;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  color:#f4eef7; touch-action:manipulation; overscroll-behavior:none;
+  color:#f6f1e8; touch-action:manipulation; overscroll-behavior:none;
   -webkit-user-select:none; user-select:none;
 }
 #stage{
   position:relative; max-width:480px; margin:0 auto; min-height:100dvh;
   background:
-    radial-gradient(90% 50% at 50% -8%, rgba(255,45,120,.13) 0%, rgba(255,45,120,0) 60%),
-    radial-gradient(70% 40% at 88% 108%, rgba(123,47,247,.10) 0%, rgba(123,47,247,0) 60%),
-    linear-gradient(180deg,#0d0816 0%,#070409 100%);
+    radial-gradient(90% 50% at 50% -8%, rgba(255,45,120,.07) 0%, rgba(255,45,120,0) 60%),
+    radial-gradient(70% 40% at 88% 108%, rgba(123,47,247,.05) 0%, rgba(123,47,247,0) 60%),
+    radial-gradient(60% 32% at 50% 115%, rgba(245,200,110,.06) 0%, rgba(245,200,110,0) 60%),
+    linear-gradient(180deg,#0a0612 0%,#050308 100%);
   overflow:hidden;
 }
 #shakeWrap{min-height:100dvh; display:flex; flex-direction:column;}
@@ -52,7 +53,7 @@ body{
   display:block; width:100%; margin:8px 0; padding:14px; border-radius:14px;
   font-size:16px; font-weight:700; color:#fff; cursor:pointer;
   background:linear-gradient(180deg,#3a1b4f,#241031);
-  border:1px solid rgba(255,45,120,.35);
+  border:1px solid rgba(232,200,150,.25);
   box-shadow:0 3px 14px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.10);
   transition:transform .06s;
 }
@@ -81,16 +82,16 @@ body{
 
 /* ---------- HUD ---------- */
 #hudTop{display:flex; gap:12px; width:100%; align-items:center;
-  background:rgba(20,13,30,.72); backdrop-filter:blur(8px);
+  background:rgba(14,9,22,.8); backdrop-filter:blur(10px);
   border:1px solid rgba(255,255,255,.09); border-radius:16px; padding:10px 12px; margin-bottom:10px}
-#avatar{width:92px; height:92px; border-radius:50%; border:2px solid rgba(255,45,120,.75);
-  box-shadow:0 0 14px rgba(255,45,120,.35); background:#1a0f26}
+#avatar{width:92px; height:92px; border-radius:50%; border:2px solid rgba(245,200,110,.7);
+  box-shadow:0 0 14px rgba(245,200,110,.25); background:#141020}
 #hudName{font-size:19px; font-weight:800; letter-spacing:.5px}
 #hudMeta{font-size:13px; color:#b9a8c9; margin-top:2px}
 #hudTier{display:inline-block; margin-top:6px; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
   color:#f7e3b0; background:linear-gradient(180deg,rgba(245,200,110,.22),rgba(245,200,110,.10));
   border:1px solid rgba(245,200,110,.55); padding:4px 12px; border-radius:20px}
-#stats{width:100%; background:rgba(20,13,30,.72); backdrop-filter:blur(8px);
+#stats{width:100%; background:rgba(14,9,22,.8); backdrop-filter:blur(10px);
   border:1px solid rgba(255,255,255,.09); border-radius:16px; padding:10px 12px}
 .stat{margin:8px 0; position:relative}
 .slabel{display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:4px;
@@ -98,8 +99,8 @@ body{
 .slabel b{font-size:14px; color:#fff; letter-spacing:0}
 .bar{height:9px; background:rgba(255,255,255,.08); border-radius:6px; overflow:hidden}
 .fill{height:100%; border-radius:6px; width:50%; transition:width .5s ease;
-  background:linear-gradient(90deg,#00b8d4,#7b2ff7,#ff2d78);
-  box-shadow:0 0 8px rgba(255,45,120,.35)}
+  background:linear-gradient(90deg,#e8b34b,#ff7a5c,#ff2d78);
+  box-shadow:0 0 8px rgba(232,179,75,.35)}
 .fill.warn{background:linear-gradient(90deg,#e8a33d,#ff2d78); box-shadow:0 0 8px rgba(232,163,61,.35)}
 .fill.bad{background:linear-gradient(90deg,#d43a3a,#8f1d1d); animation:blink 1s infinite; box-shadow:none}
 @keyframes blink{50%{opacity:.55}}
@@ -107,7 +108,7 @@ body{
   font-size:19px; font-weight:800; color:#f5c86e; letter-spacing:.5px}
 #moneyRow span:first-child{font-size:12px; letter-spacing:2px; color:#a89bb8; text-transform:uppercase}
 #menuGrid{display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; margin-top:12px}
-.menu-btn{padding:15px 8px; border-radius:16px; font-size:14px; font-weight:700; color:#f4eef7; cursor:pointer;
+.menu-btn{padding:15px 8px; border-radius:16px; font-size:14px; font-weight:700; color:#f6f1e8; cursor:pointer;
   background:rgba(22,14,34,.72); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,.10);
   box-shadow:0 3px 12px rgba(0,0,0,.45)}
 .menu-btn:active{transform:scale(.95); border-color:rgba(255,45,120,.55)}
@@ -121,7 +122,7 @@ body{
   border-radius:22px 22px 0 0; border-top:1px solid rgba(255,45,120,.45); padding:16px 16px 30px; animation:slideUp .25s ease}
 @keyframes slideUp{from{transform:translateY(60px); opacity:0}}
 .menu-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
-.menu-head h2{margin:0; font-size:20px; font-weight:800; letter-spacing:1px}
+.menu-head h2{margin:0; font-size:20px; font-weight:800; letter-spacing:1px; color:#f7e3b0}
 .xbtn{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:#fff; font-size:16px; font-weight:800;
   width:36px; height:36px; border-radius:50%; cursor:pointer}
 .kv{font-size:13px; color:#c9b8d9; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
@@ -135,7 +136,7 @@ body{
   border:1px solid rgba(245,200,110,.35);
   box-shadow:0 12px 48px rgba(0,0,0,.7), 0 0 30px rgba(255,45,120,.12); animation:pop .25s ease}
 @keyframes pop{from{transform:scale(.88); opacity:0}}
-#modal h2{margin:0 0 8px; font-size:21px; font-weight:800; letter-spacing:1px; text-align:center}
+#modal h2{margin:0 0 8px; font-size:21px; font-weight:800; letter-spacing:1px; text-align:center; color:#f7e3b0}
 #modal .mtext{font-size:15px; line-height:1.55; color:#d9cbe8; margin-bottom:12px; text-align:center}
 #modal .mresult{font-size:15px; line-height:1.55; color:#fff; background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:12px; margin-bottom:12px; text-align:center}
@@ -150,7 +151,7 @@ body{
 @keyframes bannerIn{from{transform:translateY(-100%)}}
 #toasts{position:fixed; bottom:14px; left:0; right:0; z-index:60; display:flex; flex-direction:column;
   align-items:center; gap:6px; pointer-events:none}
-.toast{background:rgba(16,10,24,.95); border:1px solid rgba(255,255,255,.14); color:#f4eef7; font-size:14px; font-weight:600;
+.toast{background:rgba(16,10,24,.95); border:1px solid rgba(255,255,255,.14); color:#f6f1e8; font-size:14px; font-weight:600;
   padding:10px 16px; border-radius:14px; max-width:92%; text-align:center; animation:toastIn .3s ease;
   box-shadow:0 4px 18px rgba(0,0,0,.6)}
 @keyframes toastIn{from{transform:translateY(20px); opacity:0}}
