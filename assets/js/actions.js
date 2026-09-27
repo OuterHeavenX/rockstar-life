@@ -422,6 +422,7 @@ function finishSex(p,kind,raw,extra){
   if(name==="bandMenu"){ openSub("band"); return; }
   if(name==="partnerMenu"){ openSub("partner"); return; }
   if(name==="entmenu"){ openSub("ent"); return; }
+  if(typeof expansionHandleAction==="function"&&expansionHandleAction(name)) return;
   if(name.indexOf("fireent")===0){ fireEnt(parseInt(name.slice(7),10)); afterAct(); return; }
   if(name==="menuBack"){ menuBack(); return; }
   if(name.indexOf("sideMenu")===0){ openSub("side",parseInt(name.slice(8),10)); return; }

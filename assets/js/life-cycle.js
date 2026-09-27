@@ -56,6 +56,7 @@ function onAge(){
   if(S.hiv&&S.hivMeds) moneyDelta(-12000,"💊 HIV meds");
   hivYear();
   lifestyleYear();
+  if(typeof expansionYear==="function") expansionYear();
   if(S.stats.money<0){ delta("happiness",-5); toast("📉 You are in debt!","⚠️"); }
   S.kids.forEach(function(k){
     k.age++;

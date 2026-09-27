@@ -162,6 +162,7 @@ function continueAsKid(idx){
   S.tier=tierForFame(S.stats.fame);
   if(S.tier>S.peakTier) S.peakTier=S.tier;
   S.peakWorth=Math.max(0,netWorth(),Math.floor(oldPeakWorth/n));
+  if(typeof inheritExpansionLegacy==="function") inheritExpansionLegacy(old);
   toast("👶 Nepo baby! You inherit the name and a head start.","🌟");
   confetti(90);
   showScreen("game"); renderAll(); saveGame();

@@ -64,6 +64,9 @@ function buildMenu(kind,ctx){
     it.push({icon:"🎸",label:"Air Guitar",sub:"talent + · happiness +",act:"k_air",cls:""});
     it.push({icon:"🖍️",label:"Draw Band Posters",sub:"the dream starts here",act:"k_draw",cls:"ghost"});
    } else {
+    it.push({icon:"🎼",label:"Music Studio",sub:"write, record, release & chart",act:"musicMenu",cls:"gold"});
+    it.push({icon:"🏙️",label:"Music Industry",sub:"labels, rivals, trends & awards",act:"industryMenu",cls:"cyan"});
+    it.push({icon:"🚌",label:"Tour Planner",sub:"cities, venues & production",act:"touringMenu",min:16,cls:"red"});
     it.push({icon:"🎸",label:"Practice",sub:"Talent + · free",act:"practice",min:10,cls:"cyan"});
     it.push({icon:"🎙️",label:"Play Gig",sub:"+"+fmtMoney(gigPay())+" · +"+T.gf+" fame",act:"gig",min:14,cls:"green"});
     if(!S.band)
@@ -132,6 +135,9 @@ function buildMenu(kind,ctx){
     if(S.kids.length)
       it.push({icon:"👶",label:"The Kids",sub:S.kids.length+" · personalities included",act:"showkids",cls:"green"});
     it.push({icon:"🚫",label:"Restraining Orders",sub:(S.restraining&&S.restraining.length?S.restraining.length+" people banned":"file one on a regular"),act:"filero",min:18,cls:"ghost"});
+    it.push({icon:"🏆",label:"Collection & Records",sub:"awards, releases, headlines & challenges",act:"collectionMenu",cls:"gold"});
+    it.push({icon:"💾",label:"Save Slots",sub:"three careers · import / export",act:"savesMenu",cls:"cyan"});
+    it.push({icon:"⚙️",label:"Settings",sub:"audio, accessibility & content",act:"settingsMenu",cls:"ghost"});
   }
   if(kind==="ent"){
     (S.entourage||[]).forEach(function(e,i){
@@ -298,6 +304,7 @@ function buildMenu(kind,ctx){
       it.push({icon:"💸",label:"Sell "+b.name,sub:"worth ~"+fmtMoney(Math.round(b.value)),act:"sellBiz"+i,cls:"ghost"});
     });
   }
+  if(typeof expansionBuildMenu==="function") expansionBuildMenu(kind,it);
   return it;
 }
 function gigPay(){

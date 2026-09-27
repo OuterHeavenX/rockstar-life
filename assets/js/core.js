@@ -108,6 +108,10 @@ function startLife(gender,sexuality){
 }
 function pickDiff(d){
   closeModal();
+  if(typeof beginExpandedLifeSetup==="function"){
+    beginExpandedLifeSetup(_nl.g,_nl.sx,d);
+    return;
+  }
   newLife(_nl.g,_nl.sx,d);
   showScreen("game"); renderAll();
 }
@@ -139,6 +143,7 @@ function newLife(gender,sexuality,diff){
     crypto:0, drinkDeal:false
   };
   if(S.traits[0]===S.traits[1]) S.traits[1]=pick(LIFE_TRAITS);
+  if(typeof ensureExpansionState==="function") ensureExpansionState();
   var sl=sexuality==="lesbian"?"lesbian":sexuality==="straight"?"straight":"bi";
   toast("🍼 "+S.name+" is born in "+S.city+"! ("+(female?"👩":"👨")+" · "+sl+" · "+S.difficulty+")", "🎸");
   toast("🧬 Traits: "+S.traits.join(" + "),"✨");
@@ -287,6 +292,7 @@ function loadGame(){
       if(!S.restraining) S.restraining=[];
       if(S.crypto===undefined) S.crypto=0;
       if(S.drinkDeal===undefined) S.drinkDeal=false;
+      if(typeof ensureExpansionState==="function") ensureExpansionState();
       S.crew.forEach(function(w){ if(w.pot===undefined)w.pot=0; }); }
     return !!(S&&S.alive!==undefined);
   }catch(e){ return false; }
@@ -402,7 +408,7 @@ function renderStats(){
 }
 function renderAll(){
   if(!S) return;
-  $("hudName").textContent=S.name;
+  $("hudName").textContent=S.profile&&S.profile.stageName?S.profile.stageName:S.name;
   var meta="🎂 "+S.age+" · "+(S.gender==="F"?"👩":"👨")+" · "+sexLabel()+" · "+(S.difficulty||"normal")+" · 📍 "+S.city;
   if(S.prison>0) meta+=" · 🔒 PRISON ("+S.prison+"y left)";
   if(S.record) meta+=" · ⚠️ record";
@@ -418,7 +424,8 @@ var MENU_TITLES={career:"🎤 Career",activities:"🎉 Activities",love:"💘 Lo
   health:"🏥 Health",crime:"🚔 Crime",life:"📖 My Life",drugs:"💊 Drugs",prison:"🔒 Prison Yard",
   assets:"💰 Assets",band:"🤘 Band",partner:"💑 Partner",side:"😈 Side Piece",member:"🤘 Band Member",
   social:"📱 Social Media",friends:"🧑‍🤝‍🧑 Friends",worker:"💼 Associate",friend:"🧑‍🤝‍🧑 Friend",
-  ent:"👔 Entourage"};
+  ent:"👔 Entourage",music:"🎼 Music Studio",industry:"🏙️ Music Industry",touring:"🚌 Tour Planner",
+  collection:"🏆 Collection",settings:"⚙️ Settings",saves:"💾 Save Slots"};
 var menuStack=[], curMenu=null, subCtx=null;
 var ROLE_ICON={Drums:"🥁",Bass:"🎸",Guitar:"🎸"};
 function openMenu(kind,ctx){
@@ -455,6 +462,7 @@ function openMenu(kind,ctx){
   if(kind==="worker") h+=workerSummary(subCtx);
   if(kind==="friend") h+=friendSummary(subCtx);
   if(kind==="prison") h+='<div class="kv">🔒 '+S.prison+' years left on your sentence. Keep your head down… or don\'t.</div>';
+  if(typeof expansionMenuSummary==="function") h+=expansionMenuSummary(kind);
   items.forEach(function(it){
     if(it.head){ h+='<div class="kv" style="text-align:center;font-weight:800;letter-spacing:2px">'+it.label+'</div>'; return; }
     var locked=it.min&&S.age<it.min;
