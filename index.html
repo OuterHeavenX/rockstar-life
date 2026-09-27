@@ -195,6 +195,7 @@ body{
         <button class="menu-btn" data-menu="health"><span class="ic">🏥</span>Health</button>
         <button class="menu-btn" data-menu="crime"><span class="ic">🚔</span>Crime</button>
         <button class="menu-btn" data-menu="life"><span class="ic">📖</span>My Life</button>
+        <button class="menu-btn" data-menu="assets"><span class="ic">💰</span>Assets</button>
       </div>
     </div>
 
@@ -208,6 +209,7 @@ body{
       <div id="legacyScore">0</div>
       <div class="ach-line" id="deathAch"></div>
       <button class="btn gold" id="btnRebirth">🎸 START NEW LIFE</button>
+      <button class="btn cyan hidden" id="btnKid">👶 CONTINUE AS KID</button>
     </div>
 
   </div>
@@ -273,6 +275,29 @@ function tierForFame(f){
   return t;
 }
 
+/* --- assets & businesses catalogs --- */
+var ASSETCAT=[
+ {name:"Used Sedan",icon:"🚗",cost:15000},
+ {name:"Sports Car",icon:"🏎️",cost:200000},
+ {name:"Supercar",icon:"🚀",cost:1200000},
+ {name:"Tour Bus",icon:"🚌",cost:500000},
+ {name:"Studio Apartment",icon:"🏢",cost:80000},
+ {name:"Suburban House",icon:"🏠",cost:350000},
+ {name:"Mansion",icon:"🏰",cost:2500000},
+ {name:"Private Jet",icon:"🛩️",cost:8000000}
+];
+var BIZCAT=[
+ {name:"Merch Line",icon:"👕",cost:50000},
+ {name:"Clothing Brand",icon:"👗",cost:300000},
+ {name:"Indie Label",icon:"💿",cost:500000,minTier:5},
+ {name:"Restaurant Chain",icon:"🍔",cost:1000000}
+];
+var BAND_ADJ=["Velvet","Neon","Midnight","Electric","Crimson","Static","Wild","Cosmic"];
+var BAND_NOUN=["Riots","Wolves","Rebels","Hearts","Parade","Ghosts","Kings","Static"];
+function assetValue(){ return S.assets.reduce(function(s,a){return s+a.value;},0); }
+function bizValue(){ return (S.biz||[]).reduce(function(s,b){return s+b.value;},0); }
+function netWorth(){ return Math.round(S.stats.money+assetValue()+bizValue()); }
+
 var SAVE_KEY="rockstarLifeSaveV1", BEST_KEY="rockstarLifeBestV1";
 
 /* ---------------- 3. STATE ---------------- */
@@ -289,6 +314,7 @@ function newLife(){
     partner:null, side:[], kids:[], spouses:0, divorces:0,
     prison:0, prisonTotal:0, record:false, alimony:0, alimonyAmt:0,
     ach:[], peakFame:0, peakTier:0, peakWorth:0,
+    assets:[], biz:[], band:null, rival:null, awardYear:-1,
     alive:true, cause:"", rel:0
   };
   toast("🍼 "+S.name+" is born in "+S.city+"!", "🎸");
@@ -344,7 +370,6 @@ function delta(stat,amt,opts){
 function moneyDelta(amt,label){
   if(!S||!S.alive) return S?S.stats.money:0;
   S.stats.money=Math.round(S.stats.money+amt);
-  if(S.stats.money>S.peakWorth) S.peakWorth=S.stats.money;
   var txt=(amt>0?"+":"")+fmtMoney(amt);
   juiceAt($("moneyRow"),txt,amt>0?"#7cff9e":"#ff6b6b",22);
   if(label) toast(label, amt>0?"💰":"💸");
@@ -410,6 +435,10 @@ function loadGame(){
     S=JSON.parse(raw);
     /* v1.1 migration: bail out minors who went into debt before the expense fix */
     if(S&&S.age<18&&S.stats&&S.stats.money<0){ S.stats.money=0; S._bailed=true; }
+    /* v1.4 migration: new systems on old saves */
+    if(S){ if(!S.assets)S.assets=[]; if(!S.biz)S.biz=[];
+      if(S.band===undefined)S.band=null; if(S.rival===undefined)S.rival=null;
+      if(S.awardYear===undefined)S.awardYear=-1; }
     return !!(S&&S.alive!==undefined);
   }catch(e){ return false; }
 }
@@ -509,8 +538,10 @@ function renderStats(){
     if((k==="health"||k==="happiness")&&st[k]<35) bar.className="fill bad";
     else if((k==="health"||k==="happiness")&&st[k]<60) bar.className="fill warn";
   });
-  $("v-money").textContent=fmtMoney(st.money);
-  $("v-money").style.color=st.money<0?"#ff6b6b":"#7cff9e";
+  var nw=netWorth();
+  $("v-money").textContent=fmtMoney(nw);
+  $("v-money").style.color=nw<0?"#ff6b6b":"#7cff9e";
+  if(nw>S.peakWorth) S.peakWorth=nw;
 }
 function renderAll(){
   if(!S) return;
@@ -528,7 +559,8 @@ function renderAll(){
 
 /* ---------------- menu framework ---------------- */
 var MENU_TITLES={career:"🎤 Career",activities:"🎉 Activities",love:"💘 Love Life",
-  health:"🏥 Health",crime:"🚔 Crime",life:"📖 My Life",drugs:"💊 Drugs",prison:"🔒 Prison Yard"};
+  health:"🏥 Health",crime:"🚔 Crime",life:"📖 My Life",drugs:"💊 Drugs",prison:"🔒 Prison Yard",
+  assets:"💰 Assets",band:"🤘 Band"};
 function openMenu(kind){
   if(!S||!S.alive) return;
   if(S.prison>0 && kind!=="prison" && kind!=="life"){
@@ -542,8 +574,11 @@ function openMenu(kind){
         '<button class="xbtn" onclick="closeMenu()">✕</button></div>';
   if(kind==="love") h+=loveSummary();
   if(kind==="life") h+=lifeSummary();
+  if(kind==="band") h+=bandSummary();
+  if(kind==="assets") h+=assetSummary();
   if(kind==="prison") h+='<div class="kv">🔒 '+S.prison+' years left on your sentence. Keep your head down… or don\'t.</div>';
   items.forEach(function(it){
+    if(it.head){ h+='<div class="kv" style="text-align:center;font-weight:800;letter-spacing:2px">'+it.label+'</div>'; return; }
     var locked=it.min&&S.age<it.min;
     h+='<button class="btn small '+it.cls+(locked?" locked":"")+'"'
       +(locked?"":' onclick="A(\''+it.act+'\')"')
@@ -575,6 +610,23 @@ function lifeSummary(){
     +"<br>🏆 Achievements: "+(S.ach.length?S.ach.length:"none")+"</div>";
   return h;
 }
+function bandSummary(){
+  var B=S.band;
+  if(!B) return "";
+  var h='<div class="kv">🤘 <b>'+B.name+'</b> · chemistry '+Math.round(B.chem)+'%';
+  B.members.forEach(function(m){
+    h+="<br>"+m.role+": "+m.name+" · skill "+Math.round(m.skill)+
+       " · ego "+Math.round(m.ego)+" · 😊 "+Math.round(m.happy);
+  });
+  return h+"</div>";
+}
+function assetSummary(){
+  var h='<div class="kv">💰 Net worth: <b>'+fmtMoney(netWorth())+'</b><br>'+
+    "cash "+fmtMoney(S.stats.money)+" · assets "+fmtMoney(assetValue())+" · biz "+fmtMoney(bizValue());
+  if(S.assets.length) h+="<br>🏠 "+S.assets.map(function(a){return a.name;}).join(", ");
+  if(S.biz.length) h+="<br>🏢 "+S.biz.map(function(b){return b.name;}).join(", ");
+  return h+"</div>";
+}
 /* menu item builders — actions dispatch through A(name) */
 function buildMenu(kind){
   var T=TIERS[S.tier], it=[];
@@ -588,6 +640,10 @@ function buildMenu(kind){
    } else {
     it.push({icon:"🎸",label:"Practice",sub:"Talent + · free",act:"practice",min:10,cls:"cyan"});
     it.push({icon:"🎙️",label:"Play Gig",sub:"+"+fmtMoney(gigPay())+" · +"+T.gf+" fame",act:"gig",min:14,cls:"green"});
+    if(!S.band)
+      it.push({icon:"🤘",label:"Form Band",sub:fmtMoney(5000)+" · min age 14",act:"formBand",min:14,cls:"gold"});
+    else
+      it.push({icon:"🤘",label:S.band.name,sub:"chemistry "+Math.round(S.band.chem)+"% · manage",act:"bandMenu",cls:"gold"});
     it.push({icon:"🎵",label:"Release Single",sub:fmtMoney(10000)+" studio cost",act:"single",min:14,cls:"gold"});
     if(S.tier>=3||S.signed)
       it.push({icon:"💿",label:"Release Album",sub:fmtMoney(50000)+" studio cost",act:"album",min:14,cls:"gold"});
@@ -660,11 +716,142 @@ function buildMenu(kind){
     it.push({icon:"🕊️",label:"Parole Hearing",sub:"only after half served",act:"p_parole",cls:"cyan"});
     it.push({icon:"🏃",label:"Escape Attempt",sub:"freedom or solitary",act:"p_escape",cls:"gold"});
   }
+  if(kind==="band"){
+    it.push({icon:"🎶",label:"Jam Session",sub:"chemistry + · morale + · free",act:"b_jam",cls:"cyan"});
+    it.push({icon:"🔥",label:"Fire & Replace",sub:fmtMoney(2000)+" · swap the weakest link",act:"b_fire",cls:"red"});
+  }
+  if(kind==="assets"){
+    it.push({head:true,label:"💰 TOYS"});
+    ASSETCAT.forEach(function(c,i){
+      it.push({icon:c.icon,label:c.name,sub:"buy · "+fmtMoney(c.cost),act:"buyAsset"+i,cls:"green"});
+    });
+    S.assets.forEach(function(a,i){
+      it.push({icon:"💸",label:"Sell "+a.name,sub:"worth ~"+fmtMoney(Math.round(a.value)),act:"sellAsset"+i,cls:"ghost"});
+    });
+    it.push({head:true,label:"🏢 BUSINESSES"});
+    BIZCAT.forEach(function(c,i){
+      var lock=c.minTier&&S.tier<c.minTier;
+      it.push({icon:c.icon,label:c.name,
+        sub:lock?("requires "+TIERS[c.minTier].name):("buy · "+fmtMoney(c.cost)),
+        act:"buyBiz"+i,cls:lock?"ghost":"gold"});
+    });
+    S.biz.forEach(function(b,i){
+      it.push({icon:"💸",label:"Sell "+b.name,sub:"worth ~"+fmtMoney(Math.round(b.value)),act:"sellBiz"+i,cls:"ghost"});
+    });
+  }
   return it;
 }
 function gigPay(){
   var T=TIERS[S.tier];
-  return Math.round(T.gig*(1+S.stats.fame/80)*RF(0.8,1.3));
+  var p=Math.round(T.gig*(1+S.stats.fame/80)*RF(0.8,1.3));
+  if(S.band) p=Math.round(p*(1+S.band.chem/200));   /* band chemistry boosts gigs */
+  return p;
+}
+
+/* ---------------- ASSETS & BUSINESSES ---------------- */
+function buyAsset(i){
+  var c=ASSETCAT[i]; if(!c) return;
+  if(!needCash(c.cost)) return;
+  moneyDelta(-c.cost,"💰 Bought "+c.name);
+  S.assets.push({name:c.name,value:c.cost,icon:c.icon});
+  if(c.name==="Mansion"||c.name==="Private Jet"){
+    confetti(90); showBanner(c.icon+" "+c.name.toUpperCase()+"!","living large");
+  }
+  achieve("asset"+i,c.name+" Owner");
+}
+function sellAsset(i){
+  var a=S.assets[i]; if(!a) return;
+  var v=Math.round(a.value*RF(0.85,1.15));
+  S.assets.splice(i,1);
+  moneyDelta(v,"💰 Sold "+a.name);
+}
+function buyBiz(i){
+  var c=BIZCAT[i]; if(!c) return;
+  if(c.minTier&&S.tier<c.minTier){ toast("Requires "+TIERS[c.minTier].name+" status.","🔞"); return; }
+  if(!needCash(c.cost)) return;
+  moneyDelta(-c.cost,"🏢 Bought "+c.name);
+  S.biz.push({name:c.name,value:c.cost,icon:c.icon});
+  confetti(70); achieve("biz"+i,c.name+" Mogul");
+}
+function sellBiz(i){
+  var b=S.biz[i]; if(!b) return;
+  var v=Math.round(b.value*RF(0.8,1.1));
+  S.biz.splice(i,1);
+  moneyDelta(v,"🏢 Sold "+b.name);
+}
+
+/* ---------------- BAND ---------------- */
+function newMember(role){
+  return {name:(chance(0.5)?pick(FIRST_F):pick(FIRST_M))+" "+pick(LAST),
+    role:role||pick(["Drums","Bass","Guitar"]),
+    skill:R(40,80), ego:R(20,60), happy:R(50,80)};
+}
+function formBand(){
+  var B={name:pick(BAND_ADJ)+" "+pick(BAND_NOUN), chem:60, members:[]};
+  ["Drums","Bass","Guitar"].forEach(function(r){ B.members.push(newMember(r)); });
+  S.band=B;
+  confetti(100); showBanner("🤘 BAND FORMED!",B.name);
+  achieve("band","Band Leader");
+  toast("🤘 "+B.name+" is born!","🎸");
+}
+function breakupBand(){
+  if(!S.band) return;
+  var n=S.band.name; S.band=null;
+  delta("fame",-5);
+  showBanner("💔 BAND BREAKUP",n+" is no more");
+  toast("💔 "+n+" broke up. Creative differences.","💔");
+  achieve("breakup","Band Breakup");
+}
+/* band member OD death (used by the band OD event) */
+function odDeath(){
+  var B=S.band; if(!B) return "The band is already gone.";
+  var i=B.members.indexOf(_bod); if(i>=0) B.members.splice(i,1);
+  B.chem=clamp(B.chem-25,0,100);
+  delta("fame",5); shakeIt();
+  toast("📰 Tragedy press: the world mourns "+_bod.name+".","📰");
+  if(B.members.length===0||B.chem<=0){
+    breakupBand();
+    return _bod.name+" did not make it. Without them, the band falls apart.";
+  }
+  return _bod.name+" did not make it. The show, somehow, goes on.";
+}
+
+/* ---------------- AWARD SHOW speech ---------------- */
+function awardSpeech(){
+  openModal('<h2>🏆 You Won!</h2><div class="mtext">You clutch the trophy. The mic is yours…</div>'+
+    '<button class="btn cyan small" id="spGrace">🥂 Gracious speech</button>'+
+    '<button class="btn red small" id="spRant">🍾 Drunken rant</button>');
+  $("spGrace").onclick=function(){
+    delta("happiness",5); delta("fame",3);
+    showResult("🏆 Acceptance Speech","You thank your mom, your fans, and your band. The crowd swoons.",null);
+  };
+  $("spRant").onclick=function(){
+    delta("notoriety",R(10,20)); delta("fame",R(3,8)); delta("happiness",8); shakeIt();
+    showResult("🏆 Acceptance Speech","You rant for 11 minutes about the industry, your ex, and pigeons. The clip gets 80M views.",null);
+  };
+}
+
+/* ---------------- CONTINUE AS YOUR KID ---------------- */
+function continueAsKid(idx){
+  var old=S, n=old.kids.length, ei=idx||0;
+  var heir=old.kids[ei];
+  var oldPeakWorth=old.peakWorth;
+  newLife();   /* fresh state, then override with the inheritance */
+  S.name=heir.name;
+  S.age=heir.age;
+  S.stats.money=Math.floor(old.stats.money/n);
+  S.stats.looks=R(30,90);
+  S.stats.talent=clamp(R(30,90)+(old.peakTier>=5?10:0),0,100);
+  S.assets=old.assets.filter(function(a,i){ return i%n===ei; });
+  S.biz=(old.biz||[]).filter(function(b,i){ return i%n===ei; });
+  S.stats.fame=Math.round(old.peakFame*0.3);
+  if(S.stats.fame>S.peakFame) S.peakFame=S.stats.fame;
+  S.tier=tierForFame(S.stats.fame);
+  if(S.tier>S.peakTier) S.peakTier=S.tier;
+  S.peakWorth=Math.max(0,netWorth(),Math.floor(oldPeakWorth/n));
+  toast("👶 Nepo baby! You inherit the name and a head start.","🌟");
+  confetti(90);
+  showScreen("game"); renderAll(); saveGame();
 }
 
 /* ---------------- 8. MODAL / EVENTS ---------------- */
@@ -734,6 +921,37 @@ function onAge(){
     if(S.partner.rel<=0){
       var ex=S.partner; S.partner=null;
       toast("💔 "+ex.name+" left you. Neglect kills love.","💔");
+    }
+  }
+  /* --- businesses: yearly profit/loss --- */
+  if(S.biz&&S.biz.length){
+    S.biz.forEach(function(b){
+      var p=Math.round(b.value*RF(-0.05,0.25));
+      moneyDelta(p,(p>=0?"📈 ":"📉 ")+b.name+": "+fmtMoney(p));
+      if(b.name==="Indie Label"&&chance(0.25)){
+        var hp=Math.round(b.value*0.5);
+        moneyDelta(hp,"💿 Label hit!");
+        delta("fame",4); confetti(60);
+        toast("💿 Your label's artist dropped a HIT!","🔥");
+      }
+    });
+  }
+  /* --- band: ego drift, morale drift, breakup check --- */
+  if(S.band){
+    var BB=S.band;
+    BB.members.forEach(function(m){
+      m.ego=clamp(Math.round(m.ego+(S.stats.fame>50?R(1,3):R(0,1))),0,100);
+      m.happy=clamp(m.happy+R(-4,2),0,100);
+    });
+    BB.chem=clamp(Math.round(BB.chem+R(-3,1)),0,100);
+    if(BB.chem<=0) breakupBand();
+  }
+  /* --- rivalry heat decay --- */
+  if(S.rival){
+    S.rival.heat-=10;
+    if(S.rival.heat<=0){
+      toast("🕊️ The beef with "+S.rival.name+" fizzled out.","🕊️");
+      S.rival=null;
     }
   }
   /* --- side-piece exposure --- */
@@ -878,10 +1096,12 @@ function exposed(){
   if(S.partner.spouse){
     var half=Math.round(S.stats.money*0.5);
     moneyDelta(-half,"⚖️ Divorce settlement");
+    var halfAB=Math.round((assetValue()+bizValue())/2);
+    if(halfAB>0) moneyDelta(-halfAB,"⚖️ Asset split");
     S.divorces++; S.spouses=Math.max(0,S.spouses-1);
     S.alimony=5; S.alimonyAmt=Math.max(5000,Math.round(S.peakWorth*0.02));
     var nm=S.partner.name; S.partner=null;
-    showResult("💔 EXPOSED!",nm+" found out about <b>"+sp+"</b> and divorced you on the spot.<br><br>Settlement: <b>"+fmtMoney(half)+"</b> + alimony for 5 years.",null);
+    showResult("💔 EXPOSED!",nm+" found out about <b>"+sp+"</b> and divorced you on the spot.<br><br>Settlement: <b>"+fmtMoney(half)+"</b>"+(halfAB>0?" + <b>"+fmtMoney(halfAB)+"</b> in assets":"")+" + alimony for 5 years.",null);
     achieve("cheater","Certified Player");
   } else {
     var nm2=S.partner.name; S.partner=null;
@@ -996,8 +1216,104 @@ var EVENTS=[
  text:function(){return "A paparazzo caught you leaving a hotel with someone who is NOT your partner.";},
  choices:[
   {t:"💸 Pay them off",sub:fmtMoney(25000),go:function(){if(S.stats.money<25000){exposed();return null;}moneyDelta(-25000,"📸 Hush money");delta("notoriety",4);return "Photos buried. Your wallet is lighter, your secret is safe.";}},
-  {t:"🤷 Let it run",go:function(){exposed();return null;}}]}
+  {t:"🤷 Let it run",go:function(){exposed();return null;}}]},
+/* --- v1.4: rivalries, award shows, band drama --- */
+{id:"rivalstart",wt:7,icon:"🎤",title:"Shots Fired!",cond:function(){return S.age>=18&&S.stats.fame>=35&&!S.rival;},
+ text:function(){ _rv={name:(chance(0.5)?pick(FIRST_F):pick(FIRST_M))+" "+pick(LAST)};
+  return "Rising star <b>"+_rv.name+"</b> called you 'washed' in an interview. The clip has 12M views.";},
+ choices:[
+  {t:"🎤 Drop a diss track",sub:"start a war",go:function(){
+    S.rival={name:_rv.name,heat:70};
+    delta("notoriety",R(8,15)); delta("fame",R(5,10)); confetti(80);
+    showBanner("⚔️ BEEF!","you vs "+_rv.name);
+    return "The diss track is SCORCHING. "+_rv.name+" responds within the hour. It is ON.";}},
+  {t:"🕊️ Squash it publicly",sub:"be the bigger star",go:function(){
+    delta("happiness",5); delta("fame",R(1,4));
+    return "You praise "+_rv.name+" on live TV. The internet calls you classy. Boring, but classy.";}},
+  {t:"🙄 Ignore it",go:function(){return "You say nothing. The clip dies down in a week.";}}]},
+{id:"rivalry",wt:8,icon:"⚔️",title:"The Beef Continues",cond:function(){return !!S.rival&&S.rival.heat>0;},
+ text:function(){return "You and <b>"+S.rival.name+"</b> are still going at it. The blogs are eating it up (heat "+Math.round(S.rival.heat)+"%).";},
+ choices:[
+  {t:"📊 Chart battle",sub:"streams vs streams",go:function(){
+    S.rival.heat=clamp(S.rival.heat+10,0,100);
+    if(S.stats.talent+R(0,40)>=55){ delta("fame",8); confetti(70);
+      return "Your track outsells theirs 3-to-1. "+S.rival.name+" deletes a tweet."; }
+    delta("fame",-8);
+    return "Their song is everywhere. Yours is… somewhere. Ouch.";}},
+  {t:"🏆 Award-show confrontation",sub:"make a scene",go:function(){
+    delta("notoriety",R(6,12)); shakeIt();
+    S.rival.heat=clamp(S.rival.heat+15,0,100);
+    return "You grab the mic during their acceptance speech. Security escorts you out. Iconic.";}},
+  {t:"🤝 Accept their collab offer",sub:"end the beef, get paid",go:function(){
+    var pay=R(50000,200000), nm=S.rival.name;
+    moneyDelta(pay,"🤝 Collab paycheck"); delta("fame",10); confetti(90);
+    S.rival=null;
+    return "You and "+nm+" drop a surprise collab. 5x platinum. The beef is officially over — you are both richer.";}}]},
+{id:"starlight",wt:6,icon:"⭐",title:"Starlight Music Awards",cond:function(){return S.age>=16&&S.stats.fame>=40&&S.awardYear!==S.age;},
+ text:function(){return "The <b>Starlight Music Awards</b> are tonight, and you are on the list. The red carpet awaits…";},
+ choices:[
+  {t:"🎩 Attend",sub:"walk the carpet",go:function(){
+    S.awardYear=S.age;
+    var noms=1+Math.floor(S.albums/2)+(S.stats.fame>=70?1:0), wins=0, i;
+    for(i=0;i<noms;i++){ if(chance(S.stats.fame/150)) wins++; }
+    if(wins>0){
+      delta("fame",wins*6); confetti(110);
+      showBanner("🏆 AWARD WINNER!",wins+" of "+noms+" nominations");
+      achieve("starlight","Starlight Winner");
+      awardSpeech(); return null;
+    }
+    delta("fame",2);
+    return "You went home empty-handed ("+noms+" nominations, 0 wins) — but the afterparty was legendary.";}},
+  {t:"🛋️ Skip it",sub:"stay home",go:function(){
+    S.awardYear=S.age; delta("fame",-2);
+    return "The cameras linger on your empty seat. The blogs notice.";}}]},
+{id:"bandquit",wt:4,icon:"🚪",title:"Band Drama!",cond:function(){return !!S.band;},
+ text:function(){return "Your "+pick(S.band.members).role.toLowerCase()+" is threatening to quit over 'creative differences' (money).";},
+ choices:[
+  {t:"🔍 Hold auditions",sub:"$2,000",go:function(){
+    var B=S.band, qi=0, fi;
+    for(fi=1;fi<B.members.length;fi++) if(B.members[fi].happy<B.members[qi].happy) qi=fi;
+    var out=B.members[qi];
+    if(S.stats.money<2000){
+      B.chem=clamp(B.chem-20,0,100);
+      if(B.chem<=0){ breakupBand(); return "You could not afford auditions. "+out.name+" walked — and the band fell apart."; }
+      return "You could not afford auditions. "+out.name+" walked.";
+    }
+    moneyDelta(-2000,"🔍 Auditions");
+    B.members[qi]=newMember(out.role);
+    B.chem=clamp(B.chem-10,0,100);
+    if(B.chem<=0){ breakupBand(); return out.name+" is out, "+B.members[qi].name+" is in — but the magic is gone. The band splits."; }
+    return out.name+" is OUT. "+B.members[qi].name+" ("+B.members[qi].role+") is in!";}},
+  {t:"🎤 Power through shorthanded",go:function(){
+    var B2=S.band; B2.chem=clamp(B2.chem-20,0,100);
+    if(B2.chem<=0){ breakupBand(); return "The tension snaps. The band breaks up on the spot."; }
+    return "You carry on with grit and duct tape. Rough, but rock.";}}]},
+{id:"bandfight",wt:4,icon:"🥊",title:"Backstage Brawl!",cond:function(){return !!S.band;},
+ text:function(){return "Two bandmates are screaming at each other backstage. A guitar is already broken.";},
+ choices:[
+  {t:"🤝 Mediate",go:function(){
+    var B=S.band; B.chem=clamp(B.chem-5,0,100);
+    B.members.forEach(function(m){ m.happy=clamp(m.happy+5,0,100); });
+    return "Peace talks work. Awkward hug. Show goes on.";}},
+  {t:"🍿 Let them brawl",go:function(){
+    var B2=S.band; B2.chem=clamp(B2.chem-15,0,100);
+    delta("notoriety",5); delta("happiness",5); shakeIt();
+    if(B2.chem<=0){ breakupBand(); return "The fight ends the band. Legendary breakup, terrible idea."; }
+    return "Bloody noses, great story. The crowd never knew.";}}]},
+{id:"bandod",wt:3,icon:"🚨",title:"Band Emergency!",cond:function(){return !!S.band&&S.band.members.length>0;},
+ text:function(){ _bod=pick(S.band.members);
+  return "<b>"+_bod.name+"</b> ("+_bod.role+") OD'd after the show. They are in the hospital — it is touch and go.";},
+ choices:[
+  {t:"🏥 Pay for rehab",sub:"$30,000",go:function(){
+    if(S.stats.money<30000) return odDeath();
+    moneyDelta(-30000,"🏥 Rehab");
+    _bod.happy=clamp(_bod.happy+10,0,100);
+    S.band.chem=clamp(S.band.chem-5,0,100);
+    return _bod.name+" pulls through. The band rallies — shakily.";}},
+  {t:"⚰️ Let fate decide",go:function(){ return odDeath(); }}]}
 ];
+var _rv={name:""};
+var _bod=null;
 /* ---------------- 10. ACTIONS ---------------- */
 function needAge(n){ if(S.age<n){ toast("You must be at least "+n+" for that.","🔞"); return false; } return true; }
 function needCash(n){ if(S.stats.money<n){ toast("You need "+fmtMoney(n)+".","💸"); return false; } return true; }
@@ -1011,6 +1327,11 @@ function A(name){
   if(!S||!S.alive||modalOpen()) return;
   if(S.prison>0&&name.indexOf("p_")!==0) return;
   if(name==="drugMenu"){ openMenu("drugs"); return; }
+  if(name==="bandMenu"){ openMenu("band"); return; }
+  if(name.indexOf("buyAsset")===0){ buyAsset(parseInt(name.slice(8),10)); afterAct(); return; }
+  if(name.indexOf("sellAsset")===0){ sellAsset(parseInt(name.slice(9),10)); afterAct(); return; }
+  if(name.indexOf("buyBiz")===0){ buyBiz(parseInt(name.slice(6),10)); afterAct(); return; }
+  if(name.indexOf("sellBiz")===0){ sellBiz(parseInt(name.slice(7),10)); afterAct(); return; }
   var T=TIERS[S.tier];
   switch(name){
     /* ---- little rockstar (ages 1-7) ---- */
@@ -1069,8 +1390,30 @@ function A(name){
       openModal('<h2>📝 Label Deal</h2><div class="mtext">You owe Big Loud Records <b>'+S.albumsOwed+
         '</b> more album(s). They paid your studio costs — deliver the hits.</div><button class="btn" onclick="closeModal()">Got it</button>');
       break;
+    /* ---- band ---- */
+    case "formBand": if(!needAge(14))break;
+      if(!needCash(5000))break;
+      moneyDelta(-5000,"🤘 Band costs"); formBand(); break;
+    case "b_jam":
+      S.band.chem=clamp(S.band.chem+5,0,100);
+      S.band.members.forEach(function(m){ m.happy=clamp(m.happy+3,0,100); });
+      delta("happiness",3); toast("🎶 Tight jam. The band is gelling.","🤘"); break;
+    case "b_fire": {
+      if(!needCash(2000))break;
+      moneyDelta(-2000,"🔥 Auditions");
+      var B=S.band, qi=0, fi;
+      for(fi=1;fi<B.members.length;fi++) if(B.members[fi].happy<B.members[qi].happy) qi=fi;
+      var out=B.members[qi];
+      B.members[qi]=newMember(out.role);
+      B.chem=clamp(B.chem-10,0,100);
+      toast("🔥 "+out.name+" is OUT. "+B.members[qi].name+" is in.","🤘");
+      if(B.chem<=0) breakupBand();
+      break; }
     /* ---- activities ---- */
-    case "social": delta("fame",R(1,4)+Math.floor(S.tier/2));
+    case "social":
+      var flex=S.assets.some(function(a){return a.name==="Mansion"||a.name==="Private Jet";})?2:0;
+      delta("fame",R(1,4)+Math.floor(S.tier/2)+flex);
+      if(flex&&chance(0.5)) toast("📸 Flexing the lifestyle…","✨");
       if(chance(0.08)){ delta("fame",R(8,15)); confetti(50); toast("📱 Your post went VIRAL!","🔥"); }
       break;
     case "party": delta("happiness",R(8,15)); delta("addiction",R(5,12)); delta("health",-R(3,8));
@@ -1131,6 +1474,8 @@ function A(name){
     case "divorce": {
       var half=Math.round(S.stats.money*0.5);
       moneyDelta(-half,"⚖️ Divorce settlement"); S.divorces++;
+      var av=assetValue()+bizValue();
+      if(av>0) moneyDelta(-Math.round(av/2),"⚖️ Asset split");
       S.alimony=5; S.alimonyAmt=Math.max(5000,Math.round(S.peakWorth*0.02));
       toast("⚖️ Divorced. Half your money is gone.","💔");
       S.partner=null; delta("happiness",-15); delta("notoriety",5); break; }
@@ -1182,7 +1527,9 @@ function A(name){
   afterAct();
 }
 function hitRoll(base){
-  return (S.stats.talent*0.6+S.stats.looks*0.2+S.stats.fame*0.2+R(0,20))>=base;
+  var b=base;
+  if(S.band) b-=(S.band.chem-50)/5;   /* tight band = easier hits */
+  return (S.stats.talent*0.6+S.stats.looks*0.2+S.stats.fame*0.2+R(0,20))>=b;
 }
 /* dating candidates */
 var CANDS=[];
@@ -1230,6 +1577,14 @@ function die(cause){
     "🏆 "+S.ach.length+" achievement"+(S.ach.length>1?"s":"")+" unlocked — a life fully lived.":
     "No achievements. A quiet life, off the charts.";
   if(isBest) setTimeout(function(){ showBanner("👑 NEW BEST LEGACY!",sc.toLocaleString("en-US")+" points"); confetti(120); },400);
+  var kb=$("btnKid");
+  if(S.kids.length>0){
+    var ei=0, ii;
+    for(ii=1;ii<S.kids.length;ii++){ if(S.kids[ii].age>S.kids[ei].age) ei=ii; }
+    kb.classList.remove("hidden");
+    kb.textContent="👶 Continue as "+S.kids[ei].name;
+    kb.onclick=(function(idx){ return function(){ continueAsKid(idx); }; })(ei);
+  } else kb.classList.add("hidden");
   showScreen("death");
 }
 
