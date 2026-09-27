@@ -36,6 +36,7 @@ body{
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .best-line{margin-top:18px; color:#f5c86e; font-weight:700; font-size:14px; letter-spacing:1px}
 .title-foot{margin-top:26px; font-size:12px; color:#6f6280}
+.startup-error{margin:12px 0 0; max-width:360px; color:#ff9b9b; font-size:13px; line-height:1.45}
 .btn{
   display:block; width:100%; margin:8px 0; padding:14px; border-radius:14px;
   font-size:16px; font-weight:700; color:#fff; cursor:pointer;

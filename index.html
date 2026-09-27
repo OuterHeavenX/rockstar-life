@@ -9,7 +9,34 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="assets/css/game.css">
+<link rel="stylesheet" href="assets/css/game.css?v=20260927.2">
+<script>
+(function(){
+  "use strict";
+  window.__rockstarReady=false;
+  window.__rockstarLoadErrors=[];
+
+  window.addEventListener("error",function(event){
+    var target=event&&event.target;
+    if(target&&(target.tagName==="SCRIPT"||target.tagName==="LINK")){
+      window.__rockstarLoadErrors.push(target.src||target.href||"unknown asset");
+    }
+  },true);
+
+  window.forceRockstarReload=function(){
+    var separator=location.search?"&":"?";
+    location.replace(location.pathname+location.search+separator+"reload="+Date.now());
+  };
+
+  window.startRockstarLife=function(){
+    if(typeof window.setupLife==="function"&&typeof window.openModal==="function"){
+      window.setupLife();
+      return;
+    }
+    window.forceRockstarReload();
+  };
+})();
+</script>
 </head>
 <body>
 <div id="stage">
@@ -18,9 +45,10 @@
       <div class="stage-lights"><span>🎤</span><span>🎸</span><span>🥁</span></div>
       <div class="logo">ROCKSTAR<br>LIFE</div>
       <div class="logo-sub">live fast &middot; play loud</div>
-      <button class="btn gold" id="btnNew">🎸 NEW LIFE</button>
+      <button class="btn gold" id="btnNew" type="button" onclick="startRockstarLife()">🎸 NEW LIFE</button>
       <button class="btn cyan hidden" id="btnContinue">▶ CONTINUE</button>
       <div class="best-line hidden" id="bestLine"></div>
+      <div class="startup-error hidden" id="startupError" role="alert"></div>
       <div class="title-foot">every choice matters &middot; every life is a song</div>
     </div>
     <div id="scr-game" class="screen hidden">
@@ -75,14 +103,30 @@
   <div id="floaters"></div>
   <canvas id="confetti"></canvas>
 </div>
-<script src="assets/js/core.js"></script>
-<script src="assets/js/menus.js"></script>
-<script src="assets/js/social-and-band.js"></script>
-<script src="assets/js/life-cycle.js"></script>
-<script src="assets/js/events.js"></script>
-<script src="assets/js/actions.js"></script>
-<script src="assets/js/relationships.js"></script>
-<script src="assets/js/game-over.js"></script>
+<script src="assets/js/core.js?v=20260927.2"></script>
+<script src="assets/js/menus.js?v=20260927.2"></script>
+<script src="assets/js/social-and-band.js?v=20260927.2"></script>
+<script src="assets/js/life-cycle.js?v=20260927.2"></script>
+<script src="assets/js/events.js?v=20260927.2"></script>
+<script src="assets/js/actions.js?v=20260927.2"></script>
+<script src="assets/js/relationships.js?v=20260927.2"></script>
+<script src="assets/js/game-over.js?v=20260927.2"></script>
+<script>
+(function(){
+  "use strict";
+  if(window.__rockstarReady) return;
+  var error=document.getElementById("startupError");
+  var button=document.getElementById("btnNew");
+  if(error){
+    error.textContent="The game could not finish loading. Tap below to refresh it.";
+    error.classList.remove("hidden");
+  }
+  if(button){
+    button.textContent="↻ REFRESH GAME";
+    button.onclick=window.forceRockstarReload;
+  }
+})();
+</script>
 </body>
 </html>
 

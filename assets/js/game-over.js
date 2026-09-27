@@ -59,3 +59,4 @@ $("menuOverlay").addEventListener("click",function(e){ if(e.target===$("menuOver
   if(b>0){ $("bestLine").classList.remove("hidden");
     $("bestLine").textContent="👑 Best legacy: "+b.toLocaleString("en-US"); }
 })();
+window.__rockstarReady=true;
