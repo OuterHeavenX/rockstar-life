@@ -584,22 +584,37 @@ function renderAll(){
 /* ---------------- menu framework ---------------- */
 var MENU_TITLES={career:"🎤 Career",activities:"🎉 Activities",love:"💘 Love Life",
   health:"🏥 Health",crime:"🚔 Crime",life:"📖 My Life",drugs:"💊 Drugs",prison:"🔒 Prison Yard",
-  assets:"💰 Assets",band:"🤘 Band"};
-function openMenu(kind){
+  assets:"💰 Assets",band:"🤘 Band",partner:"💑 Partner",side:"😈 Side Piece",member:"🤘 Band Member"};
+/* submenu navigation: openSub pushes the current page so ‹ goes back */
+var menuStack=[], curMenu=null, subCtx=null;
+var ROLE_ICON={Drums:"🥁",Bass:"🎸",Guitar:"🎸"};
+function openMenu(kind,ctx){
   if(!S||!S.alive) return;
   if(S.prison>0 && kind!=="prison" && kind!=="life"){
     toast("You are locked up. Only the yard and your memories.","🔒"); return;
   }
+  curMenu={kind:kind,ctx:(ctx===undefined?null:ctx)};
+  subCtx=curMenu.ctx;
   var items=buildMenu(kind);
   var title=MENU_TITLES[kind];
   if(S.age<=7&&kind==="career") title="🎸 Little Rockstar";
   if(S.age<=7&&kind==="activities") title="🏠 Around the House";
-  var h='<div class="menu-head"><h2>'+title+'</h2>'+
-        '<button class="xbtn" onclick="closeMenu()">✕</button></div>';
+  if(kind==="partner"&&S.partner) title="💑 "+S.partner.name;
+  if(kind==="side"&&S.side[subCtx]) title="😈 "+S.side[subCtx].name;
+  if(kind==="member"&&S.band&&S.band.members[subCtx])
+    title=(ROLE_ICON[S.band.members[subCtx].role]||"🤘")+" "+S.band.members[subCtx].name;
+  var h='<div class="menu-head">';
+  if(menuStack.length) h+='<button class="xbtn" onclick="A(\'menuBack\')">‹</button>';
+  else h+='<span style="width:36px"></span>';
+  h+='<h2 style="flex:1;text-align:center">'+title+'</h2>'+
+     '<button class="xbtn" onclick="closeMenu()">✕</button></div>';
   if(kind==="love") h+=loveSummary();
   if(kind==="life") h+=lifeSummary();
   if(kind==="band") h+=bandSummary();
   if(kind==="assets") h+=assetSummary();
+  if(kind==="partner") h+=partnerSummary();
+  if(kind==="side") h+=sideSummary(subCtx);
+  if(kind==="member") h+=memberSummary(subCtx);
   if(kind==="prison") h+='<div class="kv">🔒 '+S.prison+' years left on your sentence. Keep your head down… or don\'t.</div>';
   items.forEach(function(it){
     if(it.head){ h+='<div class="kv" style="text-align:center;font-weight:800;letter-spacing:2px">'+it.label+'</div>'; return; }
@@ -612,7 +627,16 @@ function openMenu(kind){
   $("menuPanel").innerHTML=h;
   $("menuOverlay").classList.remove("hidden");
 }
-function closeMenu(){ $("menuOverlay").classList.add("hidden"); }
+function closeMenu(){ menuStack=[]; curMenu=null; subCtx=null; $("menuOverlay").classList.add("hidden"); }
+function openSub(kind,ctx){
+  if(curMenu) menuStack.push(curMenu);
+  openMenu(kind,ctx===undefined?null:ctx);
+}
+function menuBack(){
+  var p=menuStack.pop();
+  if(p) openMenu(p.kind,p.ctx);
+  else closeMenu();
+}
 function loveSummary(){
   var h='<div class="kv">';
   if(S.partner){
@@ -651,9 +675,27 @@ function assetSummary(){
   if(S.biz.length) h+="<br>🏢 "+S.biz.map(function(b){return b.name;}).join(", ");
   return h+"</div>";
 }
+function partnerSummary(){
+  var p=S.partner; if(!p) return "";
+  return '<div class="kv">💑 <b>'+p.name+'</b> · '+(p.spouse?"💍 married":(p.engaged?"💒 engaged":"❤️ dating"))+
+    '<br>relationship '+Math.round(p.rel)+'% · looks '+Math.round(p.looks)+
+    (p.persona?' · <i>"'+p.persona+'"</i>':"")+'</div>';
+}
+function sideSummary(i){
+  var sp=S.side[i]; if(!sp) return "";
+  return '<div class="kv">😈 <b>'+sp.name+'</b><br>relationship '+Math.round(sp.rel)+
+    '% · looks '+Math.round(sp.looks)+'<br><i>nobody knows… yet</i></div>';
+}
+function memberSummary(i){
+  var m=S.band&&S.band.members[i]; if(!m) return "";
+  return '<div class="kv">'+(ROLE_ICON[m.role]||"🤘")+' <b>'+m.name+'</b> · '+m.role+
+    '<br>skill '+Math.round(m.skill)+' · ego '+Math.round(m.ego)+' · 😊 '+Math.round(m.happy)+'%</div>';
+}
+function bandMember(){ return (S.band&&S.band.members[subCtx])||null; }
 /* menu item builders — actions dispatch through A(name) */
-function buildMenu(kind){
+function buildMenu(kind,ctx){
   var T=TIERS[S.tier], it=[];
+  if(ctx===undefined) ctx=subCtx;
   if(kind==="career"){
    if(S.age<=7){
     /* toddler rockstar era — bang on things, dream big */
@@ -707,19 +749,16 @@ function buildMenu(kind){
     if(!S.partner)
       it.push({icon:"📱",label:"Dating App",sub:"find someone",act:"dating",min:18,cls:""});
     else{
-      it.push({icon:"🍷",label:"Date Night",sub:fmtMoney(500)+" · relationship +",act:"date",cls:"cyan"});
-      if(!S.partner.spouse){
-        if(!S.partner.engaged)
-          it.push({icon:"💍",label:"Propose",sub:fmtMoney(2000)+" ring · needs 60% rel",act:"propose",cls:"gold"});
-        else
-          it.push({icon:"💒",label:"Get Married",sub:"wedding scales with fame",act:"marry",cls:"gold"});
-        it.push({icon:"💔",label:"Break Up",sub:"end it",act:"breakup",cls:"ghost"});
-      } else {
-        it.push({icon:"👶",label:"Have a Child",sub:"the pitter-patter…",act:"child",cls:"green"});
-        it.push({icon:"⚖️",label:"Divorce",sub:"it will cost you",act:"divorce",cls:"red"});
-      }
-      it.push({icon:"😏",label:"Cheat",sub:"live dangerously",act:"cheat",cls:"red"});
+      var p0=S.partner;
+      it.push({icon:"💑",label:p0.name,
+        sub:(p0.spouse?"💍 Married":(p0.engaged?"💒 Engaged":"❤️ Dating"))+" · rel "+Math.round(p0.rel)+"% · manage",
+        act:"partnerMenu",cls:"gold"});
+      it.push({icon:"😏",label:"Cheat",sub:"find a secret side piece",act:"cheat",cls:"red"});
     }
+    S.side.forEach(function(sp,i){
+      it.push({icon:"😈",label:sp.name,
+        sub:"side piece · rel "+Math.round(sp.rel)+"% · manage",act:"sideMenu"+i,cls:"red"});
+    });
   }
   if(kind==="crime"){
     it.push({icon:"🍺",label:"Bar Fight",sub:"notoriety + · risky",act:"c_fight",min:12,cls:"red"});
@@ -742,7 +781,43 @@ function buildMenu(kind){
   }
   if(kind==="band"){
     it.push({icon:"🎶",label:"Jam Session",sub:"chemistry + · morale + · free",act:"b_jam",cls:"cyan"});
-    it.push({icon:"🔥",label:"Fire & Replace",sub:fmtMoney(2000)+" · swap the weakest link",act:"b_fire",cls:"red"});
+    S.band.members.forEach(function(m,i){
+      it.push({icon:ROLE_ICON[m.role]||"🤘",label:m.name,
+        sub:m.role+" · 😊 "+Math.round(m.happy)+"% · manage",act:"memberMenu"+i,cls:""});
+    });
+  }
+  if(kind==="partner"){
+    var p=S.partner; if(!p) return it;
+    it.push({icon:"🍷",label:"Date Night",sub:fmtMoney(500)+" · relationship +",act:"date",cls:"cyan"});
+    it.push({icon:"💐",label:"Compliment",sub:"free · relationship +",act:"compliment",cls:"ghost"});
+    it.push({icon:"🎁",label:"Buy Gift",sub:fmtMoney(1000)+" · relationship ++",act:"pgift",cls:""});
+    it.push({icon:"🏝️",label:"Romantic Getaway",sub:fmtMoney(8000)+" · relationship +++",act:"getaway",cls:"gold"});
+    it.push({icon:"🗯️",label:"Argue",sub:"risky · clear the air or blow up",act:"argue",cls:"red"});
+    if(!p.spouse){
+      if(!p.engaged)
+        it.push({icon:"💍",label:"Propose",sub:fmtMoney(2000)+" ring · needs 60% rel",act:"propose",cls:"gold"});
+      else
+        it.push({icon:"💒",label:"Get Married",sub:"wedding scales with fame",act:"marry",cls:"gold"});
+      it.push({icon:"💔",label:"Break Up",sub:"end it",act:"breakup",cls:"ghost"});
+    } else {
+      it.push({icon:"👶",label:"Have a Child",sub:"the pitter-patter…",act:"child",cls:"green"});
+      it.push({icon:"⚖️",label:"Divorce",sub:"it will cost you",act:"divorce",cls:"red"});
+    }
+  }
+  if(kind==="side"){
+    var sp=S.side[ctx]; if(!sp) return it;
+    it.push({icon:"🌙",label:"Secret Rendezvous",sub:"relationship + · getting-caught risk",act:"rendezvous",cls:"red"});
+    it.push({icon:"🎁",label:"Send Gift",sub:fmtMoney(500)+" · relationship +",act:"sidegift",cls:""});
+    it.push({icon:"✂️",label:"End It",sub:"cut them loose quietly",act:"endit",cls:"ghost"});
+  }
+  if(kind==="member"){
+    var m=S.band&&S.band.members[ctx]; if(!m) return it;
+    var fn=m.name.split(" ")[0];
+    it.push({icon:"👏",label:"Praise "+fn,sub:"morale + · ego +",act:"praise",cls:"cyan"});
+    it.push({icon:"💵",label:"Give Bonus",sub:fmtMoney(5000)+" · morale ++",act:"bbonus",cls:"green"});
+    it.push({icon:"🍻",label:"Hang Out",sub:"bond · chemistry +",act:"hangout",cls:""});
+    it.push({icon:"😠",label:"Reprimand",sub:"ego down · they might walk",act:"reprimand",cls:"red"});
+    it.push({icon:"🔥",label:"Fire "+fn,sub:fmtMoney(2000)+" auditions",act:"fireMember"+ctx,cls:"red"});
   }
   if(kind==="assets"){
     it.push({head:true,label:"💰 TOYS"});
@@ -825,6 +900,20 @@ function breakupBand(){
   showBanner("💔 BAND BREAKUP",n+" is no more");
   toast("💔 "+n+" broke up. Creative differences.","💔");
   achieve("breakup","Band Breakup");
+}
+/* fire one member from their person page, then land back on the band page */
+function fireMember(i){
+  var B=S.band; if(!B||!B.members[i]) return;
+  if(!needCash(2000)) return;
+  moneyDelta(-2000,"🔥 Auditions");
+  var out=B.members[i];
+  B.members[i]=newMember(out.role);
+  B.chem=clamp(B.chem-10,0,100);
+  toast("🔥 "+out.name+" is OUT. "+B.members[i].name+" is in.","🤘");
+  if(B.chem<=0) breakupBand();
+  renderAll(); saveGame(); checkDead();
+  if(S&&S.alive&&!modalOpen()){ menuStack=[]; openMenu(S.band?"band":"career"); }
+  else closeMenu();
 }
 /* band member OD death (used by the band OD event) */
 function odDeath(){
@@ -1341,7 +1430,18 @@ var _bod=null;
 /* ---------------- 10. ACTIONS ---------------- */
 function needAge(n){ if(S.age<n){ toast("You must be at least "+n+" for that.","🔞"); return false; } return true; }
 function needCash(n){ if(S.stats.money<n){ toast("You need "+fmtMoney(n)+".","💸"); return false; } return true; }
-function afterAct(){ closeMenu(); renderAll(); saveGame(); checkDead(); }
+function afterAct(){
+  renderAll(); saveGame(); checkDead();
+  if(S&&S.alive&&!modalOpen()&&curMenu){
+    /* stay on the current page; if its person is gone, fall back to the parent */
+    var k=curMenu.kind, c=curMenu.ctx;
+    if(k==="partner"&&!S.partner){ menuStack=[]; openMenu("love"); return; }
+    if(k==="side"&&!S.side[c]){ menuStack=[]; openMenu("love"); return; }
+    if(k==="member"&&(!S.band||!S.band.members[c])){ menuStack=[]; openMenu(S.band?"band":"career"); return; }
+    if(k==="band"&&!S.band){ menuStack=[]; openMenu("career"); return; }
+    openMenu(k,c);
+  } else closeMenu();
+}
 function genPerson(){
   var f=chance(0.5);
   return {name:(f?pick(FIRST_F):pick(FIRST_M))+" "+pick(LAST),
@@ -1350,8 +1450,13 @@ function genPerson(){
 function A(name){
   if(!S||!S.alive||modalOpen()) return;
   if(S.prison>0&&name.indexOf("p_")!==0) return;
-  if(name==="drugMenu"){ openMenu("drugs"); return; }
-  if(name==="bandMenu"){ openMenu("band"); return; }
+  if(name==="drugMenu"){ openSub("drugs"); return; }
+  if(name==="bandMenu"){ openSub("band"); return; }
+  if(name==="partnerMenu"){ openSub("partner"); return; }
+  if(name==="menuBack"){ menuBack(); return; }
+  if(name.indexOf("sideMenu")===0){ openSub("side",parseInt(name.slice(8),10)); return; }
+  if(name.indexOf("memberMenu")===0){ openSub("member",parseInt(name.slice(10),10)); return; }
+  if(name.indexOf("fireMember")===0){ fireMember(parseInt(name.slice(10),10)); return; }
   if(name.indexOf("buyAsset")===0){ buyAsset(parseInt(name.slice(8),10)); afterAct(); return; }
   if(name.indexOf("sellAsset")===0){ sellAsset(parseInt(name.slice(9),10)); afterAct(); return; }
   if(name.indexOf("buyBiz")===0){ buyBiz(parseInt(name.slice(6),10)); afterAct(); return; }
@@ -1422,17 +1527,54 @@ function A(name){
       S.band.chem=clamp(S.band.chem+5,0,100);
       S.band.members.forEach(function(m){ m.happy=clamp(m.happy+3,0,100); });
       delta("happiness",3); toast("🎶 Tight jam. The band is gelling.","🤘"); break;
-    case "b_fire": {
-      if(!needCash(2000))break;
-      moneyDelta(-2000,"🔥 Auditions");
-      var B=S.band, qi=0, fi;
-      for(fi=1;fi<B.members.length;fi++) if(B.members[fi].happy<B.members[qi].happy) qi=fi;
-      var out=B.members[qi];
-      B.members[qi]=newMember(out.role);
-      B.chem=clamp(B.chem-10,0,100);
-      toast("🔥 "+out.name+" is OUT. "+B.members[qi].name+" is in.","🤘");
-      if(B.chem<=0) breakupBand();
-      break; }
+    /* ---- partner page ---- */
+    case "compliment": { var cp=S.partner; if(!cp)break;
+      cp.rel=clamp(cp.rel+R(3,8),0,100); delta("happiness",2);
+      toast(pick(["You told "+cp.name+" they're the best thing that ever happened to you. ❤️",
+        "You left a love note on the fridge. ❤️","You slow-danced in the kitchen. ❤️"]),"💐"); break; }
+    case "pgift": { var pg=S.partner; if(!pg||!needCash(1000))break;
+      moneyDelta(-1000,"🎁 Gift"); pg.rel=clamp(pg.rel+R(8,15),0,100); delta("happiness",3);
+      toast("💐 "+pg.name+" loved the gift.","🎁"); break; }
+    case "getaway": { var gw=S.partner; if(!gw||!needCash(8000))break;
+      moneyDelta(-8000,"🏝️ Getaway"); gw.rel=clamp(gw.rel+R(12,20),0,100);
+      delta("happiness",8); delta("fame",2); confetti(60);
+      toast("🏝️ Papped on a beach with "+gw.name+". Iconic.","📸"); break; }
+    case "argue": { var ag=S.partner; if(!ag)break;
+      if(chance(0.3)){ ag.rel=clamp(ag.rel-R(15,25),0,100); delta("happiness",-R(6,12)); shakeIt();
+        toast("🗯️ Huge fight. Doors were slammed.","💔"); }
+      else { ag.rel=clamp(ag.rel+R(2,6),0,100); delta("happiness",2);
+        toast("Cleared the air. Stronger for it.","💬"); } break; }
+    /* ---- side piece page ---- */
+    case "rendezvous": { var rv=S.side[subCtx]; if(!rv)break;
+      rv.rel=clamp(rv.rel+R(8,14),0,100); delta("happiness",R(6,12));
+      toast("🌙 A night to remember with "+rv.name+".","😏");
+      if(chance(0.25)) exposed(); break; }
+    case "sidegift": { var sg=S.side[subCtx]; if(!sg||!needCash(500))break;
+      moneyDelta(-500,"🎁 Gift"); sg.rel=clamp(sg.rel+R(6,12),0,100);
+      toast("🎁 "+sg.name+" feels spoiled.","😏"); break; }
+    case "endit": { var ei=S.side[subCtx]; if(!ei)break;
+      S.side.splice(subCtx,1); delta("happiness",-5);
+      toast("✂️ You ended it with "+ei.name+". Clean break.","😮‍💨"); break; }
+    /* ---- band member page ---- */
+    case "praise": { var pr=bandMember(); if(!pr)break;
+      pr.happy=clamp(pr.happy+R(5,10),0,100); pr.ego=clamp(pr.ego+R(2,5),0,100);
+      S.band.chem=clamp(S.band.chem+2,0,100);
+      toast("👏 "+pr.name+" is beaming.","🤘"); break; }
+    case "bbonus": { var bb=bandMember(); if(!bb||!needCash(5000))break;
+      moneyDelta(-5000,"💵 Bonus"); bb.happy=clamp(bb.happy+R(10,16),0,100);
+      bb.ego=clamp(bb.ego+R(3,6),0,100);
+      toast("💵 "+bb.name+" just got paid.","🤘"); break; }
+    case "hangout": { var ho=bandMember(); if(!ho)break;
+      ho.happy=clamp(ho.happy+R(4,8),0,100); S.band.chem=clamp(S.band.chem+R(3,6),0,100);
+      delta("happiness",3); toast("🍻 Beers with "+ho.name+". Good times.","🤘"); break; }
+    case "reprimand": { var rp=bandMember(); if(!rp)break;
+      rp.ego=clamp(rp.ego-R(5,10),0,100); rp.happy=clamp(rp.happy-R(6,12),0,100);
+      if(chance(0.2)){ var out=rp.name, role=rp.role;
+        S.band.members[subCtx]=newMember(role);
+        S.band.chem=clamp(S.band.chem-15,0,100);
+        toast("😠 "+out+" stormed out! A replacement was found.","🔥");
+        if(S.band.chem<=0) breakupBand(); }
+      else toast("😠 "+rp.name+" took the criticism. Barely.","🤘"); break; }
     /* ---- activities ---- */
     case "social":
       var flex=S.assets.some(function(a){return a.name==="Mansion"||a.name==="Private Jet";})?2:0;
